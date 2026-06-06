@@ -1,0 +1,9 @@
+.git
+.gitignore
+.idea
+data/
+**/target/
+**/node_modules/
+**/*.log
+docs/
+settings.xml

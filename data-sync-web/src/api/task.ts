@@ -1,6 +1,6 @@
 import api from "./request"
 export const taskApi = {
-  list: () => api.get("/tasks"),
+  list: (params?: any) => api.get("/tasks", { params }),
   get: (id: number) => api.get("/tasks/" + id),
   create: (data: any) => api.post("/tasks", data),
   update: (id: number, data: any) => api.put("/tasks/" + id, data),
@@ -8,4 +8,5 @@ export const taskApi = {
   enable: (id: number) => api.post("/tasks/" + id + "/enable"),
   disable: (id: number) => api.post("/tasks/" + id + "/disable"),
   records: (taskId: number) => api.get("/tasks/" + taskId + "/records"),
+  getColumns: (taskId: number) => api.get<any, any>("/tasks/" + taskId + "/columns"),
 }

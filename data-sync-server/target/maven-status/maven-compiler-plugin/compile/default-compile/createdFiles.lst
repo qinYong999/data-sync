@@ -8,6 +8,8 @@ com\datasync\server\controller\DataSourceController.class
 com\datasync\server\service\SyncTaskService.class
 com\datasync\server\exception\GlobalExceptionHandler.class
 com\datasync\server\repository\SyncRecordRepository.class
+com\datasync\server\config\SyncLogWebSocketHandler.class
+com\datasync\server\config\WebSocketConfig.class
 com\datasync\server\model\DataSourceDTO.class
 com\datasync\server\controller\DashboardController.class
 com\datasync\server\entity\DataSourceEntity.class

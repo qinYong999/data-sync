@@ -1,5 +1,6 @@
 com\datasync\core\model\enums\SyncMode.class
 com\datasync\core\job\processor\ColumnMappingProcessor.class
+com\datasync\core\job\SyncEventBus.class
 com\datasync\core\mapper\TypeMapper.class
 com\datasync\core\job\SqlBuilder.class
 com\datasync\core\job\writer\JdbcBatchWriter$1.class
