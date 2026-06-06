@@ -1,5 +1,6 @@
 com\datasync\server\model\TaskDTO.class
 com\datasync\server\service\DataSourceService.class
+com\datasync\server\config\DatabaseCommentInitializer.class
 com\datasync\server\controller\RecordController.class
 com\datasync\server\entity\SyncTaskEntity.class
 com\datasync\server\model\TaskDTO$FieldMappingItem.class
