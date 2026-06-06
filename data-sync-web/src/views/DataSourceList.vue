@@ -1,13 +1,12 @@
 <template>
   <div>
     <div class="page-header"><h2>数据源管理</h2><el-button type="primary" @click="$router.push('/datasources/new')">新增数据源</el-button></div>
-    <div style="margin-bottom:12px">
-      <el-input v-model="search" placeholder="搜索数据源名称..." prefix-icon="Search" clearable style="width:300px" />
-    </div>
-    <el-table :data="list" border stripe v-loading="loading" @sort-change="handleSort">
-      <el-table-column prop="id" label="ID" width="70" sortable="custom" />
+    <el-table :data="list" border stripe v-loading="loading" empty-text="暂无数据，请先新增数据源" style="width:100%">
+      <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="name" label="名称" min-width="150" />
-      <el-table-column prop="dbType" label="类型" width="90"><template #default="{ row }"><el-tag :type="row.dbType==='MYSQL'?'success':'warning'">{{ row.dbType }}</el-tag></template></el-table-column>
+      <el-table-column prop="dbType" label="类型" width="90">
+        <template #default="{ row }"><el-tag :type="row.dbType==='MYSQL'?'success':'warning'">{{ row.dbType }}</el-tag></template>
+      </el-table-column>
       <el-table-column prop="host" label="主机" width="150" />
       <el-table-column prop="port" label="端口" width="70" />
       <el-table-column prop="databaseName" label="数据库名" width="150" />
@@ -19,7 +18,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination v-if="total > 0" background layout="prev, pager, next, sizes, total" :total="total" v-model:page="page" v-model:limit="size" style="margin-top:16px;justify-content:flex-end" />
+    <el-pagination v-if="total>0" background layout="prev,pager,next,sizes,total" :total="total" v-model:current-page="page" v-model:page-size="size" style="margin-top:16px;justify-content:flex-end" />
   </div>
 </template>
 
@@ -27,20 +26,41 @@
 import { ref, onMounted, watch } from "vue"
 import { datasourceApi } from "@/api/datasource"
 import { ElMessage, ElMessageBox } from "element-plus"
-const list = ref<any[]>([]); const loading = ref(false); const total = ref(0)
-const page = ref(1); const size = ref(10); const search = ref("")
+
+const list = ref<any[]>([]); const loading = ref(false)
+const total = ref(0); const page = ref(1); const size = ref(10)
 
 const load = async () => {
   loading.value = true
   try {
-    const res: any = await datasourceApi.list({ page: page.value - 1, size: size.value })
-    list.value = res.content; total.value = res.totalElements
-  } finally { loading.value = false }
+    const res: any = await datasourceApi.list({ page: page.value - 1, size: size.value, sort: "id,desc" })
+    list.value = res.content || []
+    total.value = res.totalElements || 0
+  } catch (e: any) { ElMessage.error("加载失败: " + e.message) }
+  finally { loading.value = false }
 }
-const handleSort = (s: any) => { load() }
-const testConn = async (row: any) => { try { const ok = await datasourceApi.test(row.id); ElMessage.success(ok ? "连接成功" : "连接失败") } catch (e: any) { ElMessage.error("异常: " + e.message) } }
-const handleDelete = async (row: any) => { await ElMessageBox.confirm("确定删除数据源 \""+row.name+"\"？","提示"); await datasourceApi.delete(row.id); ElMessage.success("已删除"); await load() }
-watch([page, size, search], load, { deep: true })
+
+const testConn = async (row: any) => {
+  if (!row?.id) { ElMessage.warning("数据源ID不可用"); return }
+  try {
+    const ok = await datasourceApi.test(row.id)
+    ElMessage.success(ok ? "连接成功" : "连接失败（请检查账号密码是否正确）")
+  } catch (e: any) { ElMessage.error("测试异常: " + e.message) }
+}
+
+const handleDelete = async (row: any) => {
+  if (!row?.id) { ElMessage.warning("数据源ID不可用"); return }
+  try {
+    await ElMessageBox.confirm(`确定删除数据源 "${row.name}"？删除后不可恢复。`, "删除确认", { confirmButtonText: "确定删除", cancelButtonText: "取消", type: "warning" })
+    await datasourceApi.delete(row.id)
+    ElMessage.success("删除成功")
+    await load()
+  } catch (e: any) {
+    if (e !== "cancel") ElMessage.error("删除失败: " + (e.message || e))
+  }
+}
+
+watch([page, size], load)
 onMounted(load)
 </script>
 <style scoped>

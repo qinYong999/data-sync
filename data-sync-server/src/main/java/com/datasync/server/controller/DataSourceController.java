@@ -27,14 +27,25 @@ public class DataSourceController {
     public DataSourceEntity update(@PathVariable Long id, @RequestBody DataSourceDTO dto) { return service.update(id, dto); }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) { service.delete(id); return ResponseEntity.ok().build(); }
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        try {
+            service.delete(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 
     @PostMapping("/{id}/test")
     public ResponseEntity<Boolean> test(@PathVariable Long id) {
-        DataSourceEntity e = service.findById(id);
-        DataSourceDTO dto = new DataSourceDTO();
-        dto.setDbType(e.getDbType()); dto.setHost(e.getHost()); dto.setPort(e.getPort());
-        dto.setDatabaseName(e.getDatabaseName()); dto.setUsername(e.getUsername()); dto.setPassword(e.getPassword());
-        return ResponseEntity.ok(service.testConnection(dto));
+        try {
+            DataSourceEntity e = service.findById(id);
+            DataSourceDTO dto = new DataSourceDTO();
+            dto.setDbType(e.getDbType()); dto.setHost(e.getHost()); dto.setPort(e.getPort());
+            dto.setDatabaseName(e.getDatabaseName()); dto.setUsername(e.getUsername()); dto.setPassword(e.getPassword());
+            return ResponseEntity.ok(service.testConnection(dto));
+        } catch (Exception e) {
+            return ResponseEntity.ok(false);
+        }
     }
 }
