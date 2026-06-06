@@ -320,7 +320,7 @@ CREATE TABLE sync_error (
 
 ## 8. 项目约定
 
-- 代码语言：英语（类名、方法名、注释）
+- 代码语言：英语（类名、方法名），注释使用中文
 - REST API 路径：kebab-case，如 /api/datasources
 - 数据库对象名：snake_case
 - 配置文件格式：YAML
