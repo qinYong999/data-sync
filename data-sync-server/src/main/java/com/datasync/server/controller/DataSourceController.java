@@ -18,7 +18,13 @@ public class DataSourceController {
     public Page<DataSourceEntity> list(Pageable pageable) { return service.findAll(pageable); }
 
     @GetMapping("/{id}")
-    public DataSourceEntity get(@PathVariable Long id) { return service.findById(id); }
+    public ResponseEntity<DataSourceEntity> get(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(service.findById(id));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 
     @PostMapping
     public DataSourceEntity create(@RequestBody DataSourceDTO dto) { return service.create(dto); }
