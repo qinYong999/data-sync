@@ -6,5 +6,6 @@ export const datasourceApi = {
   create: (data: Partial<DataSource>) => api.post<any, DataSource>("/datasources", data),
   update: (id: number, data: Partial<DataSource>) => api.put<any, DataSource>("/datasources/" + id, data),
   delete: (id: number) => api.delete("/datasources/" + id),
-  test: (id: number) => api.post<any, boolean>("/datasources/" + id + "/test")
+  test: (id: number) => api.post<any, boolean>("/datasources/" + id + "/test"),
+  testDirect: (data: any) => api.post<any, boolean>("/datasources/test", data),
 }
