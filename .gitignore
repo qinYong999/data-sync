@@ -1,31 +1,3 @@
-﻿# Maven
-target/
-*.class
-*.jar
-*.war
-
-# IDE
-.idea/
-*.iml
-.vscode/
-*.swp
-*.swo
-
-# OS
-Thumbs.db
-.DS_Store
-
-# Maven wrapper
-.mvn/
-mvnw
-mvnw.cmd
-
-# Logs
-*.log
-data/
-
-# H2 DB
-data/
-
-# Local settings
-settings.xml
+# Maven target/ *.class *.jar *.war  # IDE .idea/ *.iml .vscode/ *.swp *.swo  # OS Thumbs.db .DS_Store  # Maven wrapper .mvn/ mvnw mvnw.cmd  # Logs *.log data/  # H2 DB data/  # Local settings settings.xml 
+data-sync-web/node_modules/ 
+data-sync-web/dist/
