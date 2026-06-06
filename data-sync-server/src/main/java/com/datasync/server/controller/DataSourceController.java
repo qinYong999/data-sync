@@ -28,6 +28,15 @@ public class DataSourceController {
 
     @PostMapping
     public DataSourceEntity create(@RequestBody DataSourceDTO dto) { return service.create(dto); }
+    /** 直接测试连接（不需要先保存数据源） */
+    @PostMapping("/test")
+    public ResponseEntity<Boolean> testDirect(@RequestBody DataSourceDTO dto) {
+        try {
+            return ResponseEntity.ok(service.testConnection(dto));
+        } catch (Exception e) {
+            return ResponseEntity.ok(false);
+        }
+    }
 
     @PutMapping("/{id}")
     public DataSourceEntity update(@PathVariable Long id, @RequestBody DataSourceDTO dto) { return service.update(id, dto); }

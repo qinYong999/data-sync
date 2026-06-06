@@ -12,7 +12,7 @@
       <el-form-item label="用户名" prop="username" required><el-input v-model="form.username" /></el-form-item>
       <el-form-item label="密码" prop="password" required><el-input v-model="form.password" type="password" show-password /></el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="handleTest" :disabled="!isEdit && !savedId">测试连接</el-button>
+        <el-button type="primary" @click="handleTest" >测试连接</el-button>
         <el-button type="success" @click="handleSave" :loading="saving">保存</el-button>
         <el-button @click="$router.back()">取消</el-button>
       </el-form-item>
@@ -57,8 +57,10 @@ onMounted(async () => {
 
 const handleTest = async () => {
   try {
-    const ok = await datasourceApi.test(savedId.value!)
-    ElMessage.success(ok ? "连接成功" : "连接失败")
+    const ok = isEdit.value
+      ? await datasourceApi.test(savedId.value!)
+      : await datasourceApi.testDirect(form)
+    ElMessage.success(ok ? "连接成功" : "连接失败（请检查配置）")
   } catch (e: any) { ElMessage.error("连接异常: " + e.message) }
 }
 
