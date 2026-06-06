@@ -1,20 +1,58 @@
 package com.datasync.server.entity;
+
 import jakarta.persistence.*;
+import org.hibernate.annotations.Comment;
 import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "sync_record")
+@org.hibernate.annotations.Comment("同步执行记录表")
 public class SyncRecordEntity {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
-    @Column(name = "task_id", nullable = false) private Long taskId;
-    @Column(name = "start_time", nullable = false) private LocalDateTime startTime;
-    @Column(name = "end_time") private LocalDateTime endTime;
-    @Column(length = 20) private String status;
-    @Column(name = "total_rows") private Long totalRows = 0L;
-    @Column(name = "read_rows") private Long readRows = 0L;
-    @Column(name = "write_rows") private Long writeRows = 0L;
-    @Column(name = "error_rows") private Long errorRows = 0L;
-    @Column(name = "error_message", columnDefinition = "TEXT") private String errorMessage;
-    @Column(name = "trigger_type", length = 20) private String triggerType;
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Comment("记录ID")
+    private Long id;
+
+    @Column(name = "task_id", nullable = false)
+    @Comment("关联的任务ID")
+    private Long taskId;
+
+    @Column(name = "start_time", nullable = false)
+    @Comment("开始执行时间")
+    private LocalDateTime startTime;
+
+    @Column(name = "end_time")
+    @Comment("结束时间")
+    private LocalDateTime endTime;
+
+    @Column(length = 20)
+    @Comment("执行状态：RUNNING / SUCCESS / FAILED / STOPPED")
+    private String status;
+
+    @Column(name = "total_rows")
+    @Comment("总行数")
+    private Long totalRows = 0L;
+
+    @Column(name = "read_rows")
+    @Comment("已读取行数")
+    private Long readRows = 0L;
+
+    @Column(name = "write_rows")
+    @Comment("已写入行数")
+    private Long writeRows = 0L;
+
+    @Column(name = "error_rows")
+    @Comment("失败行数")
+    private Long errorRows = 0L;
+
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    @Comment("错误信息")
+    private String errorMessage;
+
+    @Column(name = "trigger_type", length = 20)
+    @Comment("触发方式：SCHEDULED / MANUAL")
+    private String triggerType;
+
     public Long getId() { return id; } public void setId(Long id) { this.id = id; }
     public Long getTaskId() { return taskId; } public void setTaskId(Long v) { this.taskId = v; }
     public LocalDateTime getStartTime() { return startTime; } public void setStartTime(LocalDateTime v) { this.startTime = v; }

@@ -1,27 +1,81 @@
 package com.datasync.server.entity;
+
 import jakarta.persistence.*;
+import org.hibernate.annotations.Comment;
 import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "sync_task")
+@org.hibernate.annotations.Comment("同步任务配置表")
 public class SyncTaskEntity {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
-    @Column(nullable = false, length = 200) private String name;
-    @Column(name = "source_ds_id", nullable = false) private Long sourceDsId;
-    @Column(name = "target_ds_id", nullable = false) private Long targetDsId;
-    @Column(name = "source_table", nullable = false, length = 200) private String sourceTable;
-    @Column(name = "target_table", nullable = false, length = 200) private String targetTable;
-    @Column(name = "sync_mode", nullable = false, length = 20) private String syncMode;
-    @Column(name = "incr_column", length = 100) private String incrColumn;
-    @Column(name = "incr_value", length = 255) private String incrValue;
-    @Column(name = "cron_expression", length = 100) private String cronExpression;
-    @Column(name = "page_size") private Integer pageSize = 1000;
-    @Column(name = "batch_size") private Integer batchSize = 500;
-    @Column(name = "mapping_json", columnDefinition = "TEXT") private String mappingJson;
-    @Column(length = 20) private String status = "DISABLED";
-    @Column(name = "created_at") private LocalDateTime createdAt;
-    @Column(name = "updated_at") private LocalDateTime updatedAt;
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Comment("任务ID")
+    private Long id;
+
+    @Column(nullable = false, length = 200)
+    @Comment("任务名称")
+    private String name;
+
+    @Column(name = "source_ds_id", nullable = false)
+    @Comment("源数据源ID")
+    private Long sourceDsId;
+
+    @Column(name = "target_ds_id", nullable = false)
+    @Comment("目标数据源ID")
+    private Long targetDsId;
+
+    @Column(name = "source_table", nullable = false, length = 200)
+    @Comment("源表名")
+    private String sourceTable;
+
+    @Column(name = "target_table", nullable = false, length = 200)
+    @Comment("目标表名")
+    private String targetTable;
+
+    @Column(name = "sync_mode", nullable = false, length = 20)
+    @Comment("同步模式：FULL / INCR / FULL_INCR")
+    private String syncMode;
+
+    @Column(name = "incr_column", length = 100)
+    @Comment("增量同步的时间戳列名")
+    private String incrColumn;
+
+    @Column(name = "incr_value", length = 255)
+    @Comment("增量同步起始值")
+    private String incrValue;
+
+    @Column(name = "cron_expression", length = 100)
+    @Comment("Quartz Cron 调度表达式")
+    private String cronExpression;
+
+    @Column(name = "page_size")
+    @Comment("每次读取的行数")
+    private Integer pageSize = 1000;
+
+    @Column(name = "batch_size")
+    @Comment("每批写入的行数")
+    private Integer batchSize = 500;
+
+    @Column(name = "mapping_json", columnDefinition = "TEXT")
+    @Comment("字段映射配置（JSON格式）")
+    private String mappingJson;
+
+    @Column(length = 20)
+    @Comment("任务状态：ENABLED / DISABLED")
+    private String status = "DISABLED";
+
+    @Column(name = "created_at")
+    @Comment("创建时间")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    @Comment("更新时间")
+    private LocalDateTime updatedAt;
+
     @PrePersist protected void onCreate() { createdAt = LocalDateTime.now(); updatedAt = LocalDateTime.now(); }
     @PreUpdate protected void onUpdate() { updatedAt = LocalDateTime.now(); }
+
     public Long getId() { return id; } public void setId(Long id) { this.id = id; }
     public String getName() { return name; } public void setName(String n) { this.name = n; }
     public Long getSourceDsId() { return sourceDsId; } public void setSourceDsId(Long v) { this.sourceDsId = v; }
