@@ -36,6 +36,6 @@ const route = useRoute(); const router = useRouter()
 const isEdit = computed(() => !!route.params.id)
 const form = ref({ name: "", sourceDsId: null, targetDsId: null, sourceTable: "", targetTable: "", syncMode: "FULL_INCR", incrColumn: "", incrValue: "", cronExpression: "", pageSize: 1000, batchSize: 500 })
 const datasources = ref<any[]>([]); const saving = ref(false)
-onMounted(async () => { datasources.value = await datasourceApi.list(); if (isEdit.value) { const t = await taskApi.get(Number(route.params.id)); form.value = { ...t, sourceDsId: t.sourceDsId, targetDsId: t.targetDsId } } })
+onMounted(async () => { datasources.value = await datasourceApi.list(); if (isEdit.value) { const t = await taskApi.get(Number(route.params.id)); form.value = { name: (t as any).name, sourceDsId: (t as any).sourceDsId, targetDsId: (t as any).targetDsId, sourceTable: (t as any).sourceTable, targetTable: (t as any).targetTable, syncMode: (t as any).syncMode, incrColumn: (t as any).incrColumn || "", incrValue: (t as any).incrValue || "", cronExpression: (t as any).cronExpression || "", pageSize: (t as any).pageSize || 1000, batchSize: (t as any).batchSize || 500 } } })
 const handleSave = async () => { saving.value = true; try { if (isEdit.value) await taskApi.update(Number(route.params.id), form.value); else await taskApi.create(form.value); ElMessage.success("保存成功"); router.push("/tasks") } finally { saving.value = false } }
 </script>

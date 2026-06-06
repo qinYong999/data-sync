@@ -1,0 +1,16 @@
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\job\processor\ColumnMappingProcessor.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\job\reader\IncrementalReader.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\job\reader\PageReader.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\job\SqlBuilder.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\job\SyncJobConfig.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\job\SyncJobListener.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\job\writer\Dm8BatchWriter.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\job\writer\JdbcBatchWriter.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\mapper\MySqlToDm8TypeMapper.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\mapper\TypeMapper.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\model\DataSourceConfig.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\model\enums\DbType.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\model\enums\SyncMode.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\model\enums\SyncStatus.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\model\FieldMapping.java
+D:\AI\codex\dataSync\data-sync-core\src\main\java\com\datasync\core\model\SyncTaskConfig.java
