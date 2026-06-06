@@ -7,8 +7,8 @@ export function createLogWebSocket(onMessage: (msg: string) => void): WebSocket 
     if (typeof event.data === "string") onMessage(event.data)
   }
 
-  ws.onerror = () => console.warn("WebSocket ????")
-  ws.onclose = () => setTimeout(() => createLogWebSocket(onMessage), 3000) // auto-reconnect
+  ws.onerror = () => console.warn("WebSocket 连接异常")
+  ws.onclose = () => setTimeout(() => createLogWebSocket(onMessage), 3000)
 
   return ws
 }
