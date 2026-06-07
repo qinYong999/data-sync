@@ -15,11 +15,12 @@ public class JdbcBatchWriter implements ItemWriter<Map<String, Object>> {
 
     protected final JdbcTemplate jdbcTemplate;
     protected final String table;
-    protected final String[] columns;
+    protected String[] columns;
     protected final DbType dbType;
     protected final boolean fullSync;
-    protected final String insertSql;
+    protected String insertSql;
     protected final String truncateSql;
+    protected boolean truncated = false;
 
     public JdbcBatchWriter(DataSource dataSource, String table, String[] columns,
                            DbType dbType, boolean fullSync) {
@@ -28,7 +29,7 @@ public class JdbcBatchWriter implements ItemWriter<Map<String, Object>> {
         this.columns = columns;
         this.dbType = dbType;
         this.fullSync = fullSync;
-        this.insertSql = BuildInsertSql(table, columns);
+        this.insertSql = (columns != null && columns.length > 0) ? BuildInsertSql(table, columns) : null;
         this.truncateSql = "TRUNCATE TABLE " + table;
     }
 
@@ -42,12 +43,27 @@ public class JdbcBatchWriter implements ItemWriter<Map<String, Object>> {
     @Override
     public void write(Chunk<? extends Map<String, Object>> chunk) {
         if (chunk.isEmpty()) return;
+
+        // 全量同步：首次写入前截断目标表
+        if (fullSync && !truncated) {
+            jdbcTemplate.execute(truncateSql);
+            truncated = true;
+        }
+
+        // 未指定列时从第一行数据自动发现列名
+        if (insertSql == null) {
+            Map<String, Object> firstRow = chunk.getItems().get(0);
+            columns = firstRow.keySet().toArray(new String[0]);
+            insertSql = BuildInsertSql(table, columns);
+        }
+
+        final String[] cols = columns;
         jdbcTemplate.batchUpdate(insertSql, new org.springframework.jdbc.core.BatchPreparedStatementSetter() {
             @Override
             public void setValues(java.sql.PreparedStatement ps, int i) throws java.sql.SQLException {
                 Map<String, Object> row = chunk.getItems().get(i);
-                for (int j = 0; j < columns.length; j++) {
-                    ps.setObject(j + 1, row.get(columns[j]));
+                for (int j = 0; j < cols.length; j++) {
+                    ps.setObject(j + 1, row.get(cols[j]));
                 }
             }
 

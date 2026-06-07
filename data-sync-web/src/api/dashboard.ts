@@ -1,5 +1,7 @@
 import api from "./request"
+import type { DashboardVO, RecordVO } from "@/types"
+
 export const dashboardApi = {
-  overview: () => api.get("/dashboard/overview"),
-  recentFails: () => api.get("/dashboard/recent-fails"),
+  overview: () => api.get<DashboardVO>("/dashboard/overview"),
+  recentFails: () => api.get<RecordVO[]>("/dashboard/recent-fails"),
 }

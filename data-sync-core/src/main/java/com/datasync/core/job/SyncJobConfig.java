@@ -51,9 +51,12 @@ public class SyncJobConfig {
             typeMapper != null ? typeMapper : new MySqlToDm8TypeMapper()
         );
 
-        // Writer
+        // Writer: FULL_INCR 无增量字段时退化为全量同步（截断目标表后重新写入）
+        boolean hasIncr = taskConfig.getIncrColumn() != null && !taskConfig.getIncrColumn().isBlank()
+            && taskConfig.getIncrValue() != null && !taskConfig.getIncrValue().isBlank();
+        boolean isFullSync = taskConfig.getSyncMode() == SyncMode.FULL
+            || (taskConfig.getSyncMode() == SyncMode.FULL_INCR && !hasIncr);
         String[] columns = extractColumns(taskConfig);
-        boolean isFullSync = taskConfig.getSyncMode() == SyncMode.FULL;
         ItemWriter<Map<String, Object>> writer;
         if (targetDbType == DbType.DM8) {
             writer = new Dm8BatchWriter(targetDs, taskConfig.getTargetTable(), columns, isFullSync);
@@ -77,18 +80,18 @@ public class SyncJobConfig {
     }
 
     private ItemReader<Map<String, Object>> buildReader(SyncTaskConfig config, DataSource sourceDs) {
-        if (config.getSyncMode() == SyncMode.INCR || config.getSyncMode() == SyncMode.FULL_INCR) {
-            if (config.getIncrColumn() != null && !config.getIncrColumn().isBlank()) {
-                return new IncrementalReader(sourceDs, config.getSourceTable(),
-                    config.getIncrColumn(), "id", config.getIncrValue());
-            }
+        boolean hasIncr = config.getIncrColumn() != null && !config.getIncrColumn().isBlank()
+            && config.getIncrValue() != null && !config.getIncrValue().isBlank();
+        if (hasIncr && (config.getSyncMode() == SyncMode.INCR || config.getSyncMode() == SyncMode.FULL_INCR)) {
+            return new IncrementalReader(sourceDs, config.getSourceTable(),
+                config.getIncrColumn(), "id", config.getIncrValue());
         }
         return new PageReader(sourceDs, config.getSourceTable(), "id", config.getPageSize());
     }
 
     private String[] extractColumns(SyncTaskConfig config) {
         if (config.getFieldMappings() == null || config.getFieldMappings().isEmpty()) {
-            return new String[]{"*"};
+            return new String[0];
         }
         return config.getFieldMappings().stream()
             .map(FieldMapping::getTargetColumn)

@@ -3,6 +3,7 @@ package com.datasync.server.controller;
 import com.datasync.server.entity.SyncTaskEntity;
 import com.datasync.server.model.TaskDTO;
 import com.datasync.server.service.DataSourceService;
+import com.datasync.server.service.SyncExecutionService;
 import com.datasync.server.service.SyncTaskService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,10 +18,13 @@ import java.util.Map;
 public class TaskController {
     private final SyncTaskService taskService;
     private final DataSourceService dsService;
+    private final SyncExecutionService executionService;
 
-    public TaskController(SyncTaskService taskService, DataSourceService dsService) {
+    public TaskController(SyncTaskService taskService, DataSourceService dsService,
+                          SyncExecutionService executionService) {
         this.taskService = taskService;
         this.dsService = dsService;
+        this.executionService = executionService;
     }
 
     @GetMapping
@@ -51,7 +55,22 @@ public class TaskController {
         return taskService.updateSchedule(id, body.get("cronExpression"));
     }
 
-    /** ???????????? */
+    @PostMapping("/{id}/trigger")
+    public ResponseEntity<Map<String, Object>> trigger(@PathVariable Long id) {
+        Map<String, Object> result = new java.util.HashMap<>();
+        try {
+            executionService.executeTaskAsync(id);
+            result.put("success", true);
+            result.put("message", "任务已触发执行");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+            return ResponseEntity.ok(result);
+        }
+    }
+
+    /** 获取源/目标表字段信息 */
     @GetMapping("/{id}/columns")
     public Map<String, List<Map<String, Object>>> getColumns(@PathVariable Long id) {
         SyncTaskEntity task = taskService.findById(id);

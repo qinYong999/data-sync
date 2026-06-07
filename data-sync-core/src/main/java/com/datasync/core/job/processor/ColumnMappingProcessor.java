@@ -22,6 +22,10 @@ public class ColumnMappingProcessor implements ItemProcessor<Map<String, Object>
 
     @Override
     public Map<String, Object> process(Map<String, Object> sourceRow) {
+        // 无字段映射配置时透传所有列
+        if (fieldMappings == null || fieldMappings.isEmpty()) {
+            return new LinkedHashMap<>(sourceRow);
+        }
         Map<String, Object> targetRow = new LinkedHashMap<>();
         for (FieldMapping mapping : fieldMappings) {
             String sourceCol = mapping.getSourceColumn();
