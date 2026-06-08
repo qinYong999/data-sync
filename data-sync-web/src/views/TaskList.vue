@@ -3,53 +3,75 @@
     <PageHeader>
       <template #title><h2>同步任务</h2></template>
       <template #actions>
-        <el-button type="primary" @click="$router.push('/tasks/new')">新增任务</el-button>
+        <el-button type="primary" @click="$router.push('/tasks/new')">
+          <el-icon><Plus /></el-icon>
+          新增任务
+        </el-button>
       </template>
     </PageHeader>
 
-    <el-table :data="data" border stripe v-loading="loading" empty-text="暂无同步任务">
-      <el-table-column prop="id" label="ID" width="70" />
-      <el-table-column prop="name" label="任务名称" min-width="150" />
-      <el-table-column label="源库" width="200">
-        <template #default="{ row }">
-          {{ dsNameMap[row.sourceDsId] ?? row.sourceDsId }}
-          .{{ row.sourceTable }}
-        </template>
-      </el-table-column>
-      <el-table-column label="目标库" width="200">
-        <template #default="{ row }">
-          {{ dsNameMap[row.targetDsId] ?? row.targetDsId }}
-          .{{ row.targetTable }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="syncMode" label="模式" width="110">
-        <template #default="{ row }"><StatusTag :value="row.syncMode" /></template>
-      </el-table-column>
-      <el-table-column prop="cronExpression" label="调度表达式" width="150" />
-      <el-table-column prop="status" label="状态" width="80">
-        <template #default="{ row }"><StatusTag :value="row.status" /></template>
-      </el-table-column>
-      <el-table-column label="操作" width="300" fixed="right">
-        <template #default="{ row }">
-          <el-button
-            size="small"
-            :type="row.status === 'ENABLED' ? 'warning' : 'success'"
-            @click="toggleStatus(row)"
-          >
-            {{ row.status === "ENABLED" ? "禁用" : "启用" }}
-          </el-button>
-          <el-button size="small" type="primary" @click="handleTrigger(row)">手动执行</el-button>
-          <el-button size="small" @click="$router.push('/tasks/' + row.id + '/edit')">编辑</el-button>
-          <el-button size="small" @click="$router.push('/tasks/' + row.id + '/records')">历史</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-container fade-in-up delay-1">
+      <el-table
+        :data="data"
+        v-loading="loading"
+        empty-text="暂无同步任务，请先创建一个"
+        stripe
+      >
+        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="name" label="任务名称" min-width="140" />
+        <el-table-column label="源" min-width="180">
+          <template #default="{ row }">
+            <div class="table-path">
+              <span class="mono source-name">{{ dsNameMap[row.sourceDsId] ?? "DS:" + row.sourceDsId }}</span>
+              <span class="path-sep">.</span>
+              <span class="mono table-name">{{ row.sourceTable }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="目标" min-width="180">
+          <template #default="{ row }">
+            <div class="table-path">
+              <span class="mono source-name">{{ dsNameMap[row.targetDsId] ?? "DS:" + row.targetDsId }}</span>
+              <span class="path-sep">.</span>
+              <span class="mono table-name">{{ row.targetTable }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="模式" width="120">
+          <template #default="{ row }"><StatusTag :value="row.syncMode" /></template>
+        </el-table-column>
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }"><StatusTag :value="row.status" /></template>
+        </el-table-column>
+        <el-table-column label="调度" width="110">
+          <template #default="{ row }">
+            <span class="mono cron-text">{{ row.cronExpression || "—" }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" min-width="240">
+          <template #default="{ row }">
+            <div class="table-actions">
+              <el-button size="small" @click="handleTrigger(row)" type="primary" :plain="true">执行</el-button>
+              <el-button
+                size="small"
+                :type="row.status === 'ENABLED' ? 'warning' : 'success'"
+                @click="toggleStatus(row)"
+                :plain="true"
+              >{{ row.status === "ENABLED" ? "禁用" : "启用" }}</el-button>
+              <el-button size="small" @click="$router.push('/tasks/' + row.id + '/edit')" :plain="true">编辑</el-button>
+              <el-button size="small" @click="$router.push('/tasks/' + row.id + '/records')">历史</el-button>
+              <el-button size="small" type="danger" @click="handleDelete(row)" :plain="true">删除</el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
+import { Plus } from "@element-plus/icons-vue"
 import { taskApi } from "@/api/task"
 import { datasourceApi } from "@/api/datasource"
 import { ElMessage } from "element-plus"
@@ -61,7 +83,6 @@ import type { TaskVO, DataSourceVO } from "@/types"
 const data = ref<TaskVO[]>([])
 const loading = ref(false)
 const dsNameMap = ref<Record<number, string>>({})
-
 const confirm = useConfirm()
 
 async function loadTasks() {
@@ -78,13 +99,9 @@ async function loadDataSourceNames() {
   try {
     const res = await datasourceApi.list({ page: 0, size: 999 })
     const map: Record<number, string> = {}
-    ;(res.content || []).forEach((ds: DataSourceVO) => {
-      map[ds.id] = ds.name
-    })
+    ;(res.content || []).forEach((ds: DataSourceVO) => { map[ds.id] = ds.name })
     dsNameMap.value = map
-  } catch {
-    // non-blocking
-  }
+  } catch { /* non-blocking */ }
 }
 
 async function toggleStatus(row: TaskVO) {
@@ -97,18 +114,14 @@ async function toggleStatus(row: TaskVO) {
       ElMessage.success("已启用")
     }
     await loadTasks()
-  } catch {
-    // interceptor handles toast
-  }
+  } catch { /* interceptor */ }
 }
 
 async function handleTrigger(row: TaskVO) {
   try {
     const res = await taskApi.trigger(row.id)
     ElMessage.success(res.success ? "任务已触发执行" : "触发失败：" + (res.message || ""))
-  } catch {
-    // interceptor handles toast
-  }
+  } catch { /* interceptor */ }
 }
 
 async function handleDelete(row: TaskVO) {
@@ -117,12 +130,49 @@ async function handleDelete(row: TaskVO) {
     await taskApi.delete(row.id)
     ElMessage.success("已删除")
     await loadTasks()
-  } catch {
-    // interceptor handles toast
-  }
+  } catch { /* interceptor */ }
 }
 
 onMounted(async () => {
   await Promise.all([loadTasks(), loadDataSourceNames()])
 })
 </script>
+
+<style scoped>
+.table-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+.table-path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.path-sep {
+  color: var(--text-muted);
+  opacity: 0.3;
+}
+.source-name {
+  color: #56dfc5;
+  font-size: 12px;
+}
+.table-name {
+  color: var(--text-primary);
+}
+.cron-text {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.table-actions {
+  display: flex;
+  gap: 3px;
+  flex-wrap: nowrap;
+}
+:deep(.el-button--small) {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+</style>
