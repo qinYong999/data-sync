@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/datasources")
@@ -19,36 +20,20 @@ public class DataSourceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<DataSourceEntity> get(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(service.findById(id));
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        try { return ResponseEntity.ok(service.findById(id)); }
+        catch (Exception e) { return ResponseEntity.notFound().build(); }
     }
 
     @PostMapping
     public DataSourceEntity create(@RequestBody DataSourceDTO dto) { return service.create(dto); }
-    /** 直接测试连接（不需要先保存数据源） */
-    @PostMapping("/test")
-    public ResponseEntity<Boolean> testDirect(@RequestBody DataSourceDTO dto) {
-        try {
-            return ResponseEntity.ok(service.testConnection(dto));
-        } catch (Exception e) {
-            return ResponseEntity.ok(false);
-        }
-    }
 
     @PutMapping("/{id}")
     public DataSourceEntity update(@PathVariable Long id, @RequestBody DataSourceDTO dto) { return service.update(id, dto); }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        try {
-            service.delete(id);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        try { service.delete(id); return ResponseEntity.ok().build(); }
+        catch (Exception e) { return ResponseEntity.ok().build(); }
     }
 
     @PostMapping("/{id}/test")
@@ -59,8 +44,18 @@ public class DataSourceController {
             dto.setDbType(e.getDbType()); dto.setHost(e.getHost()); dto.setPort(e.getPort());
             dto.setDatabaseName(e.getDatabaseName()); dto.setUsername(e.getUsername()); dto.setPassword(e.getPassword());
             return ResponseEntity.ok(service.testConnection(dto));
-        } catch (Exception e) {
-            return ResponseEntity.ok(false);
-        }
+        } catch (Exception e) { return ResponseEntity.ok(false); }
+    }
+
+    @PostMapping("/test")
+    public ResponseEntity<Boolean> testDirect(@RequestBody DataSourceDTO dto) {
+        try { return ResponseEntity.ok(service.testConnection(dto)); }
+        catch (Exception e) { return ResponseEntity.ok(false); }
+    }
+
+    @GetMapping("/{id}/tables")
+    public ResponseEntity<List<String>> getTableNames(@PathVariable Long id) {
+        try { return ResponseEntity.ok(service.getTableNames(id)); }
+        catch (Exception e) { return ResponseEntity.ok(List.of()); }
     }
 }

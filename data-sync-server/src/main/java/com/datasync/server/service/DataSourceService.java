@@ -12,6 +12,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -78,5 +79,24 @@ public class DataSourceService {
         e.setPort(dto.getPort()); e.setDatabaseName(dto.getDatabaseName());
         e.setUsername(dto.getUsername()); e.setPassword(dto.getPassword());
         return e;
+    
+
+    }
+
+    /** 获取指定数据源的所有表名 */
+    public List<String> getTableNames(Long dsId) {
+        DataSourceEntity e = findById(dsId);
+        String url = "MYSQL".equalsIgnoreCase(e.getDbType())
+            ? String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai", e.getHost(), e.getPort(), e.getDatabaseName())
+            : String.format("jdbc:dm://%s:%d/%s", e.getHost(), e.getPort(), e.getDatabaseName());
+        List<String> tables = new ArrayList<>();
+        try (Connection c = DriverManager.getConnection(url, e.getUsername(), e.getPassword());
+             ResultSet rs = c.getMetaData().getTables(e.getDatabaseName(), null, "%", new String[]{"TABLE", "VIEW"})) {
+            while (rs.next()) tables.add(rs.getString("TABLE_NAME"));
+        } catch (Exception ex) {
+            throw new RuntimeException("获取表列表失败: " + ex.getMessage());
+        }
+        Collections.sort(tables);
+        return tables;
     }
 }
