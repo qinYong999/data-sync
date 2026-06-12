@@ -88,14 +88,20 @@ public class SyncExecutionService {
         HikariDataSource targetDs = null;
 
         try {
-            SyncEventBus.publish("任务 [" + taskEntity.getName() + "] 开始执行...");
+            SyncEventBus.publish("▶ 任务 [" + taskEntity.getName() + "] 开始执行"
+                + " | 源: " + sourceEntity.getName() + "." + taskEntity.getSourceTable()
+                + " → 目标: " + targetEntity.getName() + "." + taskEntity.getTargetTable()
+                + " | 模式: " + taskEntity.getSyncMode());
 
             // 构建动态数据源
             sourceDs = buildDataSource(sourceEntity);
             targetDs = buildDataSource(targetEntity);
+            SyncEventBus.publish("  · 源库 [" + sourceEntity.getName() + ":" + sourceEntity.getHost() + ":" + sourceEntity.getPort() + "] 连接成功");
+            SyncEventBus.publish("  · 目标库 [" + targetEntity.getName() + ":" + targetEntity.getHost() + ":" + targetEntity.getPort() + "] 连接成功");
 
             // 转换配置
             SyncTaskConfig taskConfig = toTaskConfig(taskEntity);
+            SyncEventBus.publish("  · 配置加载完成 | 每页 " + taskConfig.getPageSize() + " 行, 每批 " + taskConfig.getBatchSize() + " 行");
 
             // 构建 Spring Batch Job
             DbType targetDbType = DbType.valueOf(targetEntity.getDbType().toUpperCase());
@@ -143,9 +149,14 @@ public class SyncExecutionService {
             recordRepo.save(record);
 
             String statusText = "COMPLETED".equals(statusName) ? "成功" : "失败";
-            SyncEventBus.publish("任务 [" + taskEntity.getName() + "] 执行" + statusText
-                + "，读取 " + (record.getReadRows() != null ? record.getReadRows() : 0)
-                + " 行，写入 " + (record.getWriteRows() != null ? record.getWriteRows() : 0) + " 行");
+            long durationMs = java.time.Duration.between(record.getStartTime(), record.getEndTime()).toMillis();
+            String durationStr = durationMs < 1000 ? durationMs + "ms"
+                : (durationMs / 1000) + "s " + (durationMs % 1000) + "ms";
+            String statusEmoji = "COMPLETED".equals(statusName) ? "✓" : "✗";
+            SyncEventBus.publish(statusEmoji + " 任务 [" + taskEntity.getName() + "] 执行" + statusText
+                + " | 耗时: " + durationStr
+                + " | 读取: " + (record.getReadRows() != null ? record.getReadRows() : 0) + " 行"
+                + " | 写入: " + (record.getWriteRows() != null ? record.getWriteRows() : 0) + " 行");
 
             log.info("任务 {} 手动触发执行完成，状态: {}", taskId, execution.getStatus());
             return record.getId();
@@ -156,7 +167,9 @@ public class SyncExecutionService {
             record.setStatus("FAILED");
             record.setErrorMessage(e.getMessage());
             recordRepo.save(record);
-            SyncEventBus.publish("任务 [" + taskEntity.getName() + "] 执行失败: " + e.getMessage());
+            SyncEventBus.publish("✗ 任务 [" + taskEntity.getName() + "] 执行失败: " + e.getMessage()
+                + " | 源: " + sourceEntity.getName() + "." + taskEntity.getSourceTable()
+                + " → 目标: " + targetEntity.getName() + "." + taskEntity.getTargetTable());
             throw new RuntimeException("任务执行失败: " + e.getMessage(), e);
 
         } finally {

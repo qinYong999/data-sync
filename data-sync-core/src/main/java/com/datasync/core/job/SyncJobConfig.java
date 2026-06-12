@@ -70,6 +70,7 @@ public class SyncJobConfig {
             .reader(reader)
             .processor(processor)
             .writer(writer)
+            .listener(new SyncProgressListener())
             .build();
 
         // Job

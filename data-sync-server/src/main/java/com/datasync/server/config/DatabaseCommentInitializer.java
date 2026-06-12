@@ -17,7 +17,6 @@ public class DatabaseCommentInitializer {
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
-        // 表级注释（安全，不影响列定义）
         for (String[] t : TABLES) {
             try {
                 jdbc.execute("ALTER TABLE " + t[0] + " COMMENT = '" + t[1] + "'");
@@ -26,7 +25,6 @@ public class DatabaseCommentInitializer {
                 log.debug("跳过 {}: {}", t[0], e.getMessage());
             }
         }
-        // 列级注释（先查 INFORMATION_SCHEMA 获取精确列定义，再追加 COMMENT）
         for (Object[] c : COLUMNS) {
             try {
                 String t = (String)c[0], col = (String)c[1], cmt = (String)c[2];
@@ -66,7 +64,6 @@ public class DatabaseCommentInitializer {
     };
 
     private static final Object[][] COLUMNS = {
-        // ========== datasource ==========
         {"datasource", "id", "数据源ID"},
         {"datasource", "name", "数据源名称"},
         {"datasource", "db_type", "数据库类型：MYSQL/DM8"},
@@ -77,7 +74,6 @@ public class DatabaseCommentInitializer {
         {"datasource", "password", "登录密码（加密存储）"},
         {"datasource", "created_at", "创建时间"},
         {"datasource", "updated_at", "更新时间"},
-        // ========== sync_task ==========
         {"sync_task", "id", "任务ID"},
         {"sync_task", "name", "任务名称"},
         {"sync_task", "source_ds_id", "源数据源ID"},
@@ -94,7 +90,6 @@ public class DatabaseCommentInitializer {
         {"sync_task", "status", "任务状态：ENABLED/DISABLED"},
         {"sync_task", "created_at", "创建时间"},
         {"sync_task", "updated_at", "更新时间"},
-        // ========== sync_record ==========
         {"sync_record", "id", "记录ID"},
         {"sync_record", "task_id", "关联任务ID"},
         {"sync_record", "start_time", "开始执行时间"},
@@ -106,12 +101,10 @@ public class DatabaseCommentInitializer {
         {"sync_record", "error_rows", "失败行数"},
         {"sync_record", "error_message", "错误信息"},
         {"sync_record", "trigger_type", "触发方式：SCHEDULED/MANUAL"},
-        // ========== BATCH_JOB_INSTANCE ==========
         {"BATCH_JOB_INSTANCE", "JOB_INSTANCE_ID", "任务实例ID（主键）"},
         {"BATCH_JOB_INSTANCE", "VERSION", "乐观锁版本号"},
         {"BATCH_JOB_INSTANCE", "JOB_NAME", "任务名称"},
         {"BATCH_JOB_INSTANCE", "JOB_KEY", "任务唯一键（用于去重）"},
-        // ========== BATCH_JOB_EXECUTION ==========
         {"BATCH_JOB_EXECUTION", "JOB_EXECUTION_ID", "任务执行ID（主键）"},
         {"BATCH_JOB_EXECUTION", "VERSION", "乐观锁版本号"},
         {"BATCH_JOB_EXECUTION", "JOB_INSTANCE_ID", "关联任务实例ID"},
@@ -123,7 +116,6 @@ public class DatabaseCommentInitializer {
         {"BATCH_JOB_EXECUTION", "EXIT_MESSAGE", "退出信息"},
         {"BATCH_JOB_EXECUTION", "LAST_UPDATED", "最后更新时间"},
         {"BATCH_JOB_EXECUTION", "JOB_CONFIGURATION_LOCATION", "任务配置位置"},
-        // ========== BATCH_JOB_EXECUTION_PARAMS ==========
         {"BATCH_JOB_EXECUTION_PARAMS", "JOB_EXECUTION_ID", "关联任务执行ID"},
         {"BATCH_JOB_EXECUTION_PARAMS", "TYPE_CD", "参数类型：STRING/DATE/LONG/DOUBLE"},
         {"BATCH_JOB_EXECUTION_PARAMS", "KEY_NAME", "参数键名"},
@@ -132,11 +124,9 @@ public class DatabaseCommentInitializer {
         {"BATCH_JOB_EXECUTION_PARAMS", "LONG_VAL", "长整型参数值"},
         {"BATCH_JOB_EXECUTION_PARAMS", "DOUBLE_VAL", "浮点型参数值"},
         {"BATCH_JOB_EXECUTION_PARAMS", "IDENTIFYING", "是否标识参数：Y/N"},
-        // ========== BATCH_JOB_EXECUTION_CONTEXT ==========
         {"BATCH_JOB_EXECUTION_CONTEXT", "JOB_EXECUTION_ID", "关联任务执行ID"},
         {"BATCH_JOB_EXECUTION_CONTEXT", "SHORT_CONTEXT", "上下文简短内容"},
         {"BATCH_JOB_EXECUTION_CONTEXT", "SERIALIZED_CONTEXT", "上下文序列化内容"},
-        // ========== BATCH_STEP_EXECUTION ==========
         {"BATCH_STEP_EXECUTION", "STEP_EXECUTION_ID", "步骤执行ID（主键）"},
         {"BATCH_STEP_EXECUTION", "VERSION", "乐观锁版本号"},
         {"BATCH_STEP_EXECUTION", "STEP_NAME", "步骤名称"},
@@ -155,7 +145,6 @@ public class DatabaseCommentInitializer {
         {"BATCH_STEP_EXECUTION", "EXIT_CODE", "退出码"},
         {"BATCH_STEP_EXECUTION", "EXIT_MESSAGE", "退出信息"},
         {"BATCH_STEP_EXECUTION", "LAST_UPDATED", "最后更新时间"},
-        // ========== BATCH_STEP_EXECUTION_CONTEXT ==========
         {"BATCH_STEP_EXECUTION_CONTEXT", "STEP_EXECUTION_ID", "关联步骤执行ID"},
         {"BATCH_STEP_EXECUTION_CONTEXT", "SHORT_CONTEXT", "上下文简短内容"},
         {"BATCH_STEP_EXECUTION_CONTEXT", "SERIALIZED_CONTEXT", "上下文序列化内容"},

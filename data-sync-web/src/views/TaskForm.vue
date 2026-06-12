@@ -5,19 +5,13 @@
     </PageHeader>
 
     <div class="form-layout">
-      <!-- Main form -->
       <div class="form-card fade-in-up delay-1">
-        <el-form
-          ref="formRef"
-          :model="form"
-          :rules="rules"
-          label-position="top"
-        >
+        <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
           <div class="form-grid">
-            <el-form-item label="任务名称" prop="name" required>
+            <el-form-item label="任务名称" prop="name">
               <el-input v-model="form.name" placeholder="my-sync-task" />
             </el-form-item>
-            <el-form-item label="同步模式" prop="syncMode" required>
+            <el-form-item label="同步模式" prop="syncMode">
               <el-select v-model="form.syncMode">
                 <el-option label="全量同步" value="FULL" />
                 <el-option label="增量同步" value="INCR" />
@@ -28,33 +22,23 @@
 
           <div class="form-section-label">数据源配置</div>
           <div class="form-grid">
-            <el-form-item label="源数据源" prop="sourceDsId" required>
+            <el-form-item label="源数据源" prop="sourceDsId">
               <el-select v-model="form.sourceDsId" placeholder="选择源数据源">
                 <el-option v-for="ds in datasources" :key="ds.id" :label="ds.name" :value="ds.id" />
               </el-select>
             </el-form-item>
-            <el-form-item label="源表名" prop="sourceTable" required>
-              <el-select
-                v-model="form.sourceTable"
-                filterable
-                clearable
-                placeholder="先选择源数据源"
-              >
+            <el-form-item label="源表名" prop="sourceTable">
+              <el-select v-model="form.sourceTable" filterable clearable placeholder="先选择源数据源">
                 <el-option v-for="t in sourceTables" :key="t" :label="t" :value="t" />
               </el-select>
             </el-form-item>
-            <el-form-item label="目标数据源" prop="targetDsId" required>
+            <el-form-item label="目标数据源" prop="targetDsId">
               <el-select v-model="form.targetDsId" placeholder="选择目标数据源">
                 <el-option v-for="ds in datasources" :key="ds.id" :label="ds.name" :value="ds.id" />
               </el-select>
             </el-form-item>
-            <el-form-item label="目标表名" prop="targetTable" required>
-              <el-select
-                v-model="form.targetTable"
-                filterable
-                clearable
-                placeholder="先选择目标数据源"
-              >
+            <el-form-item label="目标表名" prop="targetTable">
+              <el-select v-model="form.targetTable" filterable clearable placeholder="先选择目标数据源">
                 <el-option v-for="t in targetTables" :key="t" :label="t" :value="t" />
               </el-select>
             </el-form-item>
@@ -77,38 +61,20 @@
           </div>
 
           <div class="form-actions">
-            <el-button type="primary" @click="handleSave" :loading="saving">
-              保存
-            </el-button>
+            <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
             <el-button @click="$router.back()">取消</el-button>
           </div>
         </el-form>
       </div>
 
-      <!-- Field Mapping Panel -->
       <div class="form-card fade-in-up delay-2">
         <div class="mapping-header">
           <h3>字段映射</h3>
-          <el-button
-            v-if="mappingTaskId"
-            size="small"
-            type="primary"
-            @click="refreshMapping"
-            :plain="true"
-          >
-            获取列信息
-          </el-button>
+          <el-button v-if="mappingTaskId" size="small" type="primary" @click="mappingKey++" :plain="true">获取列信息</el-button>
         </div>
-        <FieldMappingEditor
-          v-if="mappingTaskId"
-          :task-id="mappingTaskId"
-          :key="mappingKey"
-          @update:mappings="onMappingsUpdate"
-        />
+        <FieldMappingEditor v-if="mappingTaskId" :task-id="mappingTaskId" :key="mappingKey" @update:mappings="onMappingsUpdate" />
         <div v-else class="mapping-placeholder">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.2">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
-          </svg>
+          <span class="mapping-placeholder-icon">◈</span>
           <p>请先保存任务后再配置字段映射</p>
         </div>
       </div>
@@ -143,17 +109,8 @@ const rules = {
 }
 
 const form = reactive<TaskFormType>({
-  name: "",
-  sourceDsId: null,
-  targetDsId: null,
-  sourceTable: "",
-  targetTable: "",
-  syncMode: "FULL_INCR",
-  incrColumn: "",
-  incrValue: "",
-  cronExpression: "",
-  pageSize: 1000,
-  batchSize: 500,
+  name: "", sourceDsId: null, targetDsId: null, sourceTable: "", targetTable: "",
+  syncMode: "FULL_INCR", incrColumn: "", incrValue: "", cronExpression: "", pageSize: 1000, batchSize: 500,
 })
 
 const sourceTables = ref<string[]>([])
@@ -162,19 +119,13 @@ const datasources = ref<any[]>([])
 const mappingTaskId = ref<number | null>(null)
 const fieldMappings = ref<any[]>([])
 
-function onMappingsUpdate(mappings: any[]) {
-  fieldMappings.value = mappings
-}
-
-function refreshMapping() {
-  mappingKey.value++
-}
+function onMappingsUpdate(mappings: any[]) { fieldMappings.value = mappings }
 
 onMounted(async () => {
   try {
     const res: any = await datasourceApi.list({ page: 0, size: 999, sort: "id,desc" })
     datasources.value = res.content || []
-  } catch { /* interceptor */ }
+  } catch {}
 
   if (isEdit.value) {
     try {
@@ -191,96 +142,45 @@ onMounted(async () => {
       form.pageSize = task.pageSize ?? 1000
       form.batchSize = task.batchSize ?? 500
       mappingTaskId.value = Number(route.params.id)
-    } catch { /* interceptor */ }
+    } catch {}
   }
 })
 
-watch(() => form.sourceDsId, async (newVal) => {
-  if (newVal) { try { sourceTables.value = await datasourceApi.getTables(newVal) } catch { sourceTables.value = [] } }
-  else { sourceTables.value = [] }
-})
-watch(() => form.targetDsId, async (newVal) => {
-  if (newVal) { try { targetTables.value = await datasourceApi.getTables(newVal) } catch { targetTables.value = [] } }
-  else { targetTables.value = [] }
-})
+watch(() => form.sourceDsId, async (v) => { try { sourceTables.value = v ? await datasourceApi.getTables(v) : [] } catch { sourceTables.value = [] } })
+watch(() => form.targetDsId, async (v) => { try { targetTables.value = v ? await datasourceApi.getTables(v) : [] } catch { targetTables.value = [] } })
 
 async function handleSave() {
   saving.value = true
   try {
     const payload = { ...form, fieldMappings: fieldMappings.value }
-    if (isEdit.value) {
-      await taskApi.update(Number(route.params.id), payload)
-      ElMessage.success("保存成功")
-    } else {
-      const created = await taskApi.create(payload)
-      mappingTaskId.value = created.id
-      ElMessage.success("创建成功，可继续配置字段映射")
-    }
+    if (isEdit.value) { await taskApi.update(Number(route.params.id), payload); ElMessage.success("保存成功") }
+    else { const c = await taskApi.create(payload); mappingTaskId.value = c.id; ElMessage.success("创建成功，可继续配置字段映射") }
     router.push("/tasks")
-  } catch { /* interceptor */ }
-  finally { saving.value = false }
+  } catch {} finally { saving.value = false }
 }
 </script>
 
 <style scoped>
-.form-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  align-items: start;
-}
-@media (max-width: 1200px) {
-  .form-layout { grid-template-columns: 1fr; }
-}
+.form-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 1000px) { .form-layout { grid-template-columns: 1fr; } }
+
 .form-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 24px;
 }
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px 20px;
-}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 20px; }
 .form-section-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-top: 20px;
-  margin-bottom: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-subtle);
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-top: 20px; margin-bottom: 8px; padding-top: 16px; border-top: 1px solid var(--border-subtle);
 }
-.form-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-subtle);
-}
-:deep(.el-input-number) { width: 100%; }
-:deep(.el-select) { width: 100%; }
+.form-actions { display: flex; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-subtle); }
+:deep(.el-input-number), :deep(.el-select) { width: 100%; }
 
-.mapping-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.mapping-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 40px 20px;
-  color: var(--text-muted);
-  text-align: center;
-  gap: 12px;
-}
-.mapping-placeholder p {
-  margin: 0;
-  font-size: 14px;
-}
+.mapping-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.mapping-placeholder { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; color: var(--text-muted); text-align: center; gap: 10px; }
+.mapping-placeholder p { margin: 0; font-size: 14px; }
+.mapping-placeholder-icon { font-size: 32px; opacity: 0.2; }
 </style>
