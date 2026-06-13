@@ -31,7 +31,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="模式" width="120">
+        <el-table-column label="模式" width="150">
           <template #default="{ row }"><StatusTag :value="row.syncMode" /></template>
         </el-table-column>
         <el-table-column label="状态" width="90">
@@ -40,16 +40,14 @@
         <el-table-column label="调度" width="110">
           <template #default="{ row }"><span class="mono cron">{{ row.cronExpression || "—" }}</span></template>
         </el-table-column>
-        <el-table-column label="操作" min-width="170">
+        <el-table-column label="操作" min-width="120">
           <template #default="{ row }">
             <div class="actions">
-              <el-button size="small" type="primary" @click="handleTrigger(row)" :plain="true">执行</el-button>
-              <el-button size="small" :type="row.status === 'ENABLED' ? 'warning' : 'success'" @click="toggleStatus(row)" :plain="true">
-                {{ row.status === "ENABLED" ? "停用" : "启用" }}
-              </el-button>
-              <el-button size="small" @click="$router.push('/tasks/' + row.id + '/edit')">编辑</el-button>
-              <el-button size="small" @click="$router.push('/tasks/' + row.id + '/records')">历史</el-button>
-              <el-button size="small" type="danger" @click="handleDelete(row)" :plain="true">删除</el-button>
+              <el-button size="small" type="primary" @click="handleTrigger(row)" :plain="true">执</el-button>
+              <el-button size="small" :type="row.status === 'ENABLED' ? 'warning' : 'success'" @click="toggleStatus(row)" :plain="true">{{ row.status === "ENABLED" ? "停" : "启" }}</el-button>
+              <el-button size="small" @click="$router.push('/tasks/' + row.id + '/edit')">编</el-button>
+              <el-button size="small" @click="$router.push('/tasks/' + row.id + '/records')">历</el-button>
+              <el-button size="small" type="danger" @click="handleDelete(row)" :plain="true">删</el-button>
             </div>
           </template>
         </el-table-column>

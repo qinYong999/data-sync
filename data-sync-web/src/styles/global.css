@@ -235,7 +235,7 @@ h3 { font-size: 16px; }
   --el-button-hover-border-color: var(--accent);
   --el-button-text-color: var(--accent);
 }
-.el-button--small { padding: 5px 7px; font-size: 12px; }
+.el-button--small { padding: 5px 5px; font-size: 12px; }
 .el-input__wrapper { box-shadow: 0 0 0 1px var(--border-primary) inset !important; border-radius: var(--radius-sm); background: var(--bg-input); }
 .el-input__wrapper.is-focus { box-shadow: 0 0 0 1px var(--accent) inset !important; }
 .el-select .el-input__wrapper { box-shadow: 0 0 0 1px var(--border-primary) inset !important; }
