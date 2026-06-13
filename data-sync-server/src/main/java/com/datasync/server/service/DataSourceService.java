@@ -49,7 +49,7 @@ public class DataSourceService {
         List<Map<String, Object>> cols = new ArrayList<>();
         try (Connection c = DriverManager.getConnection(url, e.getUsername(), e.getPassword())) {
             DatabaseMetaData meta = c.getMetaData();
-            try (ResultSet rs = meta.getColumns(null, "%", tableName, "%")) {
+            try (ResultSet rs = meta.getColumns(e.getDatabaseName(), null, tableName, "%")) {
                 while (rs.next()) {
                     Map<String, Object> col = new HashMap<>();
                     col.put("name", rs.getString("COLUMN_NAME"));
@@ -59,7 +59,7 @@ public class DataSourceService {
                     cols.add(col);
                 }
             }
-            try (ResultSet pk = meta.getPrimaryKeys(null, null, tableName)) {
+            try (ResultSet pk = meta.getPrimaryKeys(e.getDatabaseName(), null, tableName)) {
                 while (pk.next()) {
                     String pkCol = pk.getString("COLUMN_NAME");
                     for (var col : cols) {

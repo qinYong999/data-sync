@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/datasources")
@@ -56,6 +57,13 @@ public class DataSourceController {
     @GetMapping("/{id}/tables")
     public ResponseEntity<List<String>> getTableNames(@PathVariable Long id) {
         try { return ResponseEntity.ok(service.getTableNames(id)); }
+        catch (Exception e) { return ResponseEntity.ok(List.of()); }
+    }
+
+    @GetMapping("/{id}/columns")
+    public ResponseEntity<List<Map<String, Object>>> getTableColumns(
+            @PathVariable Long id, @RequestParam String table) {
+        try { return ResponseEntity.ok(service.getTableColumns(id, table)); }
         catch (Exception e) { return ResponseEntity.ok(List.of()); }
     }
 }

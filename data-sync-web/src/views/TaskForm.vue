@@ -47,10 +47,25 @@
           <div class="form-section-label">高级配置</div>
           <div class="form-grid">
             <el-form-item v-if="form.syncMode !== 'FULL'" label="增量字段">
-              <el-input v-model="form.incrColumn" placeholder="updated_at" />
+              <el-select v-model="form.incrColumn" filterable clearable placeholder="选择增量字段">
+                <el-option v-for="c in sourceColumns" :key="c.name" :label="c.name + ' (' + c.type + ')'" :value="c.name" />
+              </el-select>
+              <div v-if="sourceColumns.length === 0" style="font-size:12px;color:var(--text-muted);margin-top:4px">
+                请先选择源数据源和源表
+              </div>
             </el-form-item>
             <el-form-item v-if="form.syncMode !== 'FULL' && form.incrColumn" label="增量起始值">
-              <el-input v-model="form.incrValue" placeholder="留空将自动获取最大值" />
+              <el-date-picker
+                v-if="isIncrColumnTimeType"
+                v-model="incrDateValue"
+                type="datetime"
+                placeholder="选择起始时间，留空自动获取"
+                format="YYYY-MM-DD HH:mm:ss"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                style="width:100%"
+                clearable
+              />
+              <el-input v-else v-model="form.incrValue" placeholder="留空自动获取最大值" />
               <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
                 留空则首次执行时自动从源表获取最大值作为起始值
               </div>
@@ -121,9 +136,25 @@ const form = reactive<TaskFormType>({
 
 const sourceTables = ref<string[]>([])
 const targetTables = ref<string[]>([])
+const sourceColumns = ref<any[]>([])
 const datasources = ref<any[]>([])
 const mappingTaskId = ref<number | null>(null)
 const fieldMappings = ref<any[]>([])
+
+// 判断增量字段是否为时间类型
+const isIncrColumnTimeType = computed(() => {
+  if (!form.incrColumn) return false
+  const col = sourceColumns.value.find((c: any) => c.name === form.incrColumn)
+  if (!col) return false
+  const type = (col.type || "").toUpperCase()
+  return type.includes("TIME") || type.includes("DATE") || type.includes("TIMESTAMP")
+})
+
+// 增量起始值日期绑定（el-date-picker <-> form.incrValue）
+const incrDateValue = computed({
+  get: () => form.incrValue || null,
+  set: (val: any) => { form.incrValue = val || "" }
+})
 
 function onMappingsUpdate(mappings: any[]) { fieldMappings.value = mappings }
 
@@ -154,6 +185,17 @@ onMounted(async () => {
 
 watch(() => form.sourceDsId, async (v) => { try { sourceTables.value = v ? await datasourceApi.getTables(v) : [] } catch { sourceTables.value = [] } })
 watch(() => form.targetDsId, async (v) => { try { targetTables.value = v ? await datasourceApi.getTables(v) : [] } catch { targetTables.value = [] } })
+
+// 源表变化时获取列信息（用于增量字段下拉选择）
+watch([() => form.sourceDsId, () => form.sourceTable], async ([dsId, table]) => {
+  if (dsId && table) {
+    try {
+      sourceColumns.value = await datasourceApi.getTableColumns(dsId, table)
+    } catch { sourceColumns.value = [] }
+  } else {
+    sourceColumns.value = []
+  }
+}, { immediate: false })
 
 async function handleSave() {
   saving.value = true
