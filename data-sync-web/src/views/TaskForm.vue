@@ -49,6 +49,12 @@
             <el-form-item v-if="form.syncMode !== 'FULL'" label="增量字段">
               <el-input v-model="form.incrColumn" placeholder="updated_at" />
             </el-form-item>
+            <el-form-item v-if="form.syncMode !== 'FULL' && form.incrColumn" label="增量起始值">
+              <el-input v-model="form.incrValue" placeholder="留空将自动获取最大值" />
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+                留空则首次执行时自动从源表获取最大值作为起始值
+              </div>
+            </el-form-item>
             <el-form-item label="Cron 表达式">
               <el-input v-model="form.cronExpression" placeholder="0 */5 * * * ?" />
             </el-form-item>
