@@ -14,10 +14,7 @@ public class SyncJobListener implements JobExecutionListener {
 
     @Override
     public void beforeJob(JobExecution jobExecution) {
-        String jobName = jobExecution.getJobInstance().getJobName();
-        String msg = "▶ 同步任务 [" + jobName + "] 开始执行";
-        log.info(msg);
-        SyncEventBus.publish(msg);
+        // 不做额外操作，由 SyncExecutionService 发送开始消息
     }
 
     @Override
@@ -28,29 +25,47 @@ public class SyncJobListener implements JobExecutionListener {
         String durationStr = formatDuration(durationMs);
 
         // 汇总各步骤统计
-        long totalRead = 0, totalWrite = 0, totalSkip = 0;
+        long totalRead = 0, totalWrite = 0, totalSkip = 0, totalCommit = 0;
         StringBuilder stepDetail = new StringBuilder();
         for (var step : jobExecution.getStepExecutions()) {
             totalRead += step.getReadCount();
             totalWrite += step.getWriteCount();
             totalSkip += step.getSkipCount();
+            totalCommit += step.getCommitCount();
             stepDetail.append(" [").append(step.getStepName())
                 .append(" 读:").append(step.getReadCount())
                 .append(" 写:").append(step.getWriteCount())
+                .append(" 提交:").append(step.getCommitCount())
                 .append("]");
         }
 
-        String statusEmoji = status == BatchStatus.COMPLETED ? "✓" : "✗";
-        String msg = statusEmoji + " 同步任务 [" + jobName + "] "
-            + (status == BatchStatus.COMPLETED ? "已完成" : "失败: " + status)
-            + " | 耗时: " + durationStr
-            + " | 读取: " + totalRead + " 行"
-            + " | 写入: " + totalWrite + " 行"
-            + (totalSkip > 0 ? " | 跳过: " + totalSkip + " 行" : "");
+        // 构建状态消息
+        boolean completed = status == BatchStatus.COMPLETED;
+        String statusIcon = completed ? "✓" : "✗";
+        String statusText = completed ? "已完成" : "失败(" + status + ")";
 
-        log.info(msg);
-        log.info("步骤明细:{}", stepDetail);
-        SyncEventBus.publish(msg);
+        StringBuilder msg = new StringBuilder();
+        msg.append(statusIcon).append(" 同步任务 [").append(jobName).append("] ").append(statusText);
+        msg.append(" | 耗时: ").append(durationStr);
+        msg.append(" | 读取: ").append(totalRead).append(" 行");
+        msg.append(" | 写入: ").append(totalWrite).append(" 行");
+
+        // 增量同步且写入为0时提示数据无变化
+        if (completed && totalWrite == 0) {
+            msg.append(" | 源数据无变更，跳过写入");
+        }
+        // 全量同步时提示已清空重写
+        if (completed && totalWrite > 0 && totalWrite == totalRead) {
+            msg.append(" (全量重写)");
+        }
+
+        if (totalSkip > 0) {
+            msg.append(" | 跳过: ").append(totalSkip).append(" 行");
+        }
+
+        log.info(msg.toString());
+        log.debug("步骤明细:{}", stepDetail);
+        SyncEventBus.publish(msg.toString());
     }
 
     private static String formatDuration(long ms) {

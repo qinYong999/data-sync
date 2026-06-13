@@ -44,9 +44,15 @@
         <el-table-column label="触发" width="70">
           <template #default="{ row }"><StatusTag :value="row.triggerType" /></template>
         </el-table-column>
-        <el-table-column prop="errorMessage" label="错误信息" min-width="200" show-overflow-tooltip>
+        <el-table-column label="执行结果" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">
-            <span v-if="row.errorMessage" class="error-text">{{ row.errorMessage }}</span>
+            <span v-if="row.status === 'FAILED'" class="error-text">{{ row.errorMessage || "执行失败" }}</span>
+            <span v-else-if="row.status === 'COMPLETED' || row.status === 'SUCCESS'" class="summary-text">
+              读取 <span class="mono emph">{{ row.readRows }}</span> 行 →
+              写入 <span class="mono emph">{{ row.writeRows }}</span> 行
+              <span v-if="row.readRows !== row.writeRows" class="diff">(过滤{{ row.readRows - row.writeRows }}行)</span>
+              <span v-if="row.endTime" class="duration">, 耗时 {{ calcDuration(row) }}</span>
+            </span>
             <span v-else class="no-err">—</span>
           </template>
         </el-table-column>
@@ -92,6 +98,17 @@ const { connected, messages, connect, clearMessages } = useWebSocket({ onMessage
 watch(messages, scrollToBottom)
 
 function clearLogs() { clearMessages() }
+
+function calcDuration(row: any): string {
+  if (!row.startTime || !row.endTime) return ""
+  const start = new Date(row.startTime).getTime()
+  const end = new Date(row.endTime).getTime()
+  const ms = end - start
+  if (ms < 1000) return ms + "ms"
+  const sec = Math.floor(ms / 1000)
+  if (sec < 60) return sec + "s " + (ms % 1000) + "ms"
+  return Math.floor(sec / 60) + "m " + (sec % 60) + "s"
+}
 
 async function loadRecords() {
   loading.value = true
@@ -141,5 +158,9 @@ onMounted(async () => { await loadRecords(); connect() })
 .err { color: var(--accent-rose); font-size: 11px; margin-left: 4px; }
 .arrow { color: var(--text-muted); margin: 0 4px; opacity: 0.3; }
 .error-text { color: var(--accent-rose); font-size: 13px; }
+.summary-text { color: var(--text-secondary); font-size: 13px; }
+.summary-text .emph { color: var(--text-primary); }
+.summary-text .duration { color: var(--text-muted); }
+.summary-text .diff { color: var(--accent-amber); font-size: 12px; }
 .no-err { color: var(--text-muted); opacity: 0.35; }
 </style>

@@ -86,12 +86,37 @@ public class SyncExecutionService {
 
         HikariDataSource sourceDs = null;
         HikariDataSource targetDs = null;
+        // 同步模式描述（供 try 和 catch 共用）
+        boolean hasIncrColumn = taskEntity.getIncrColumn() != null && !taskEntity.getIncrColumn().isBlank();
+        boolean hasIncrValue = taskEntity.getIncrValue() != null && !taskEntity.getIncrValue().isBlank();
+        String effectiveMode = "未知模式";
 
         try {
+            // 判断有效的同步模式
+            if ("FULL".equals(taskEntity.getSyncMode())) {
+                effectiveMode = "全量同步(清空目标表后重写)";
+            } else if ("INCR".equals(taskEntity.getSyncMode())) {
+                if (!hasIncrColumn) {
+                    effectiveMode = "增量同步(未配置增量字段，执行全量)";
+                } else if (!hasIncrValue) {
+                    effectiveMode = "增量同步(增量字段=" + taskEntity.getIncrColumn() + ", 首次全量)";
+                } else {
+                    effectiveMode = "增量同步(增量字段=" + taskEntity.getIncrColumn() + ", 起始值=" + taskEntity.getIncrValue() + ")";
+                }
+            } else if ("FULL_INCR".equals(taskEntity.getSyncMode())) {
+                if (!hasIncrColumn) {
+                    effectiveMode = "全量同步(未配置增量字段)";
+                } else if (!hasIncrValue) {
+                    effectiveMode = "全量+增量(增量字段=" + taskEntity.getIncrColumn() + ", 首次全量)";
+                } else {
+                    effectiveMode = "先全量后增量(增量字段=" + taskEntity.getIncrColumn() + ", 起始值=" + taskEntity.getIncrValue() + ")";
+                }
+            }
+
             SyncEventBus.publish("▶ 任务 [" + taskEntity.getName() + "] 开始执行"
                 + " | 源: " + sourceEntity.getName() + "." + taskEntity.getSourceTable()
                 + " → 目标: " + targetEntity.getName() + "." + taskEntity.getTargetTable()
-                + " | 模式: " + taskEntity.getSyncMode());
+                + " | 模式: " + effectiveMode);
 
             // 构建动态数据源
             sourceDs = buildDataSource(sourceEntity);
@@ -153,10 +178,24 @@ public class SyncExecutionService {
             String durationStr = durationMs < 1000 ? durationMs + "ms"
                 : (durationMs / 1000) + "s " + (durationMs % 1000) + "ms";
             String statusEmoji = "COMPLETED".equals(statusName) ? "✓" : "✗";
-            SyncEventBus.publish(statusEmoji + " 任务 [" + taskEntity.getName() + "] 执行" + statusText
+            long readRows = record.getReadRows() != null ? record.getReadRows() : 0;
+            long writeRows = record.getWriteRows() != null ? record.getWriteRows() : 0;
+
+            String summary = statusEmoji + " 任务 [" + taskEntity.getName() + "] 执行" + statusText
+                + " | 模式: " + effectiveMode
                 + " | 耗时: " + durationStr
-                + " | 读取: " + (record.getReadRows() != null ? record.getReadRows() : 0) + " 行"
-                + " | 写入: " + (record.getWriteRows() != null ? record.getWriteRows() : 0) + " 行");
+                + " | 读取: " + readRows + " 行"
+                + " | 写入: " + writeRows + " 行";
+            // 增量但写入0行时提示数据无变更
+            boolean isIncremental = hasIncrColumn && hasIncrValue;
+            if ("COMPLETED".equals(statusName) && isIncremental && writeRows == 0) {
+                summary += " | 源数据无变更或已是最新";
+            }
+            // 记录行数差异提示
+            if ("COMPLETED".equals(statusName) && writeRows < readRows) {
+                summary += " | (过滤" + (readRows - writeRows) + "行)";
+            }
+            SyncEventBus.publish(summary);
 
             log.info("任务 {} 手动触发执行完成，状态: {}", taskId, execution.getStatus());
             return record.getId();
@@ -167,9 +206,11 @@ public class SyncExecutionService {
             record.setStatus("FAILED");
             record.setErrorMessage(e.getMessage());
             recordRepo.save(record);
-            SyncEventBus.publish("✗ 任务 [" + taskEntity.getName() + "] 执行失败: " + e.getMessage()
+            SyncEventBus.publish("✗ 任务 [" + taskEntity.getName() + "] 执行失败"
+                + " | 模式: " + effectiveMode
                 + " | 源: " + sourceEntity.getName() + "." + taskEntity.getSourceTable()
-                + " → 目标: " + targetEntity.getName() + "." + taskEntity.getTargetTable());
+                + " → 目标: " + targetEntity.getName() + "." + taskEntity.getTargetTable()
+                + " | 错误: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
             throw new RuntimeException("任务执行失败: " + e.getMessage(), e);
 
         } finally {

@@ -51,11 +51,12 @@ public class SyncJobConfig {
             typeMapper != null ? typeMapper : new MySqlToDm8TypeMapper()
         );
 
-        // Writer: FULL_INCR 无增量字段时退化为全量同步（截断目标表后重新写入）
-        boolean hasIncr = taskConfig.getIncrColumn() != null && !taskConfig.getIncrColumn().isBlank()
-            && taskConfig.getIncrValue() != null && !taskConfig.getIncrValue().isBlank();
+        // Writer: FULL_INCR 无有效增量配置时退化为全量同步（截断目标表后重新写入）
+        boolean hasIncrColumn = taskConfig.getIncrColumn() != null && !taskConfig.getIncrColumn().isBlank();
+        boolean hasIncrValue = taskConfig.getIncrValue() != null && !taskConfig.getIncrValue().isBlank();
+        boolean hasValidIncr = hasIncrColumn && hasIncrValue;
         boolean isFullSync = taskConfig.getSyncMode() == SyncMode.FULL
-            || (taskConfig.getSyncMode() == SyncMode.FULL_INCR && !hasIncr);
+            || (taskConfig.getSyncMode() == SyncMode.FULL_INCR && !hasValidIncr);
         String[] columns = extractColumns(taskConfig);
         ItemWriter<Map<String, Object>> writer;
         if (targetDbType == DbType.DM8) {
@@ -81,9 +82,10 @@ public class SyncJobConfig {
     }
 
     private ItemReader<Map<String, Object>> buildReader(SyncTaskConfig config, DataSource sourceDs) {
-        boolean hasIncr = config.getIncrColumn() != null && !config.getIncrColumn().isBlank()
-            && config.getIncrValue() != null && !config.getIncrValue().isBlank();
-        if (hasIncr && (config.getSyncMode() == SyncMode.INCR || config.getSyncMode() == SyncMode.FULL_INCR)) {
+        boolean hasIncrColumn = config.getIncrColumn() != null && !config.getIncrColumn().isBlank();
+        boolean hasIncrValue = config.getIncrValue() != null && !config.getIncrValue().isBlank();
+        if (hasIncrColumn && hasIncrValue
+            && (config.getSyncMode() == SyncMode.INCR || config.getSyncMode() == SyncMode.FULL_INCR)) {
             return new IncrementalReader(sourceDs, config.getSourceTable(),
                 config.getIncrColumn(), "id", config.getIncrValue());
         }
