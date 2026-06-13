@@ -31,6 +31,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue"
 import { taskApi } from "@/api/task"
+import { ElMessage } from "element-plus"
 import type { ColumnInfo } from "@/types"
 
 const props = defineProps<{ taskId?: number }>()
@@ -42,7 +43,7 @@ const targetColumns = ref<ColumnInfo[]>([])
 const mappings = ref<any[]>([])
 
 async function fetchColumns() {
-  if (!props.taskId) return
+  if (!props.taskId) { ElMessage.warning("请先保存任务后再获取列信息"); return }
   loading.value = true
   try {
     const data = await taskApi.getColumns(props.taskId)

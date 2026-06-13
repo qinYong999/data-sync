@@ -17,5 +17,6 @@ com\datasync\core\model\FieldMapping.class
 com\datasync\core\job\SyncJobConfig.class
 com\datasync\core\job\SyncJobListener.class
 com\datasync\core\job\reader\IncrementalReader.class
+com\datasync\core\job\SyncProgressListener.class
 com\datasync\core\job\SqlBuilder$1.class
 com\datasync\core\model\enums\DbType.class

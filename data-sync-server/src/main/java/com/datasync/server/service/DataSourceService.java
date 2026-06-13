@@ -13,6 +13,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -50,8 +51,12 @@ public class DataSourceService {
             DatabaseMetaData meta = c.getMetaData();
             try (ResultSet rs = meta.getColumns(null, "%", tableName, "%")) {
                 while (rs.next()) {
-                    cols.add(Map.of("name", rs.getString("COLUMN_NAME"), "type", rs.getString("TYPE_NAME"),
-                        "nullable", rs.getInt("NULLABLE") == 1, "primaryKey", false));
+                    Map<String, Object> col = new HashMap<>();
+                    col.put("name", rs.getString("COLUMN_NAME"));
+                    col.put("type", rs.getString("TYPE_NAME"));
+                    col.put("nullable", rs.getInt("NULLABLE") == 1);
+                    col.put("primaryKey", false);
+                    cols.add(col);
                 }
             }
             try (ResultSet pk = meta.getPrimaryKeys(null, null, tableName)) {
