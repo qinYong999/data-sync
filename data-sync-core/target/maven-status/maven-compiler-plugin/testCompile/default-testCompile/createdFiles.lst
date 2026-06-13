@@ -1,4 +1,0 @@
-com\datasync\core\job\SqlBuilderTest.class
-com\datasync\core\mapper\MySqlToDm8TypeMapperTest.class
-com\datasync\core\job\SyncJobIntegrationTest.class
-com\datasync\core\job\processor\ColumnMappingProcessorTest.class
