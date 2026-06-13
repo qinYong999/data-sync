@@ -13,10 +13,12 @@
 
     <h3 style="margin: 32px 0 12px">最近失败记录</h3>
     <div class="table-container fade-in-up delay-3">
-      <el-table :data="recentFailures" v-loading="failsLoading" empty-text="暂无失败记录" stripe>
+      <el-table :data="recentFailures" v-loading="failsLoading" empty-text="暂无失败记录" stripe border style="width:100%">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="taskId" label="任务ID" width="70" />
-        <el-table-column prop="startTime" label="时间" width="170" />
+        <el-table-column label="时间" width="150">
+          <template #default="{ row }">{{ formatTime(row.startTime) }}</template>
+        </el-table-column>
         <el-table-column label="已读取" width="80">
           <template #default="{ row }"><span class="mono">{{ row.readRows }}</span></template>
         </el-table-column>
@@ -54,6 +56,15 @@ const stats = computed(() => {
     { label: "总读取行数", value: o.totalReadRows.toLocaleString(), color: "#f59e0b" },
   ]
 })
+
+
+function formatTime(iso: string): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds())
+}
 
 async function loadDashboard() {
   try { overview.value = await dashboardApi.overview() } catch {}

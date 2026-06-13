@@ -10,13 +10,13 @@
     </PageHeader>
 
     <div class="table-container fade-in-up delay-1">
-      <el-table :data="data" v-loading="loading" empty-text="暂无数据，请先新增数据源" stripe>
+      <el-table :data="data" v-loading="loading" empty-text="暂无数据，请先新增数据源" stripe border style="width:100%">
         <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="name" label="名称" min-width="140" />
+        <el-table-column prop="name" label="名称" min-width="120" />
         <el-table-column label="类型" width="90">
           <template #default="{ row }"><StatusTag :value="row.dbType" /></template>
         </el-table-column>
-        <el-table-column label="连接信息" min-width="220">
+        <el-table-column label="连接信息" min-width="160">
           <template #default="{ row }">
             <span class="conn-info">
               <span class="mono conn-host">{{ row.host }}:{{ row.port }}</span>
@@ -25,8 +25,8 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="username" label="用户名" width="100" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="username" label="用户名" width="90" />
+        <el-table-column label="操作" width="200">
           <template #default="{ row }">
             <el-button size="small" @click="handleTest(row)" :plain="true">测试</el-button>
             <el-button size="small" @click="$router.push('/datasources/' + row.id + '/edit')">编辑</el-button>

@@ -26,10 +26,14 @@
 
     <!-- Records Table -->
     <div class="table-container fade-in-up delay-2">
-      <el-table :data="pagedRecords" v-loading="loading" empty-text="暂无执行记录" stripe>
+      <el-table :data="pagedRecords" v-loading="loading" empty-text="暂无执行记录" stripe border style="width:100%">
         <el-table-column prop="id" label="#" width="55" />
-        <el-table-column prop="startTime" label="开始时间" width="160" />
-        <el-table-column prop="endTime" label="结束时间" width="160" />
+        <el-table-column label="开始时间" width="150">
+          <template #default="{ row }">{{ formatTime(row.startTime) }}</template>
+        </el-table-column>
+        <el-table-column label="结束时间" width="150">
+          <template #default="{ row }">{{ formatTime(row.endTime) }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="80">
           <template #default="{ row }"><StatusTag :value="row.status" /></template>
         </el-table-column>
@@ -108,6 +112,15 @@ function calcDuration(row: any): string {
   const sec = Math.floor(ms / 1000)
   if (sec < 60) return sec + "s " + (ms % 1000) + "ms"
   return Math.floor(sec / 60) + "m " + (sec % 60) + "s"
+}
+
+
+function formatTime(iso: string): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds())
 }
 
 async function loadRecords() {

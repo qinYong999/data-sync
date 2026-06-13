@@ -10,7 +10,7 @@
     </PageHeader>
 
     <div class="table-container fade-in-up delay-1">
-      <el-table :data="data" v-loading="loading" empty-text="暂无同步任务，请先创建一个" stripe>
+      <el-table :data="data" v-loading="loading" empty-text="暂无同步任务，请先创建一个" stripe border style="width:100%">
         <el-table-column prop="id" label="ID" width="55" />
         <el-table-column prop="name" label="任务名称" min-width="130" />
         <el-table-column label="源" min-width="160">
@@ -73,6 +73,15 @@ const data = ref<TaskVO[]>([])
 const loading = ref(false)
 const dsNameMap = ref<Record<number, string>>({})
 const confirm = useConfirm()
+
+
+function formatTime(iso: string): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds())
+}
 
 async function load() {
   loading.value = true
