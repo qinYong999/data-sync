@@ -31,21 +31,21 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="模式" width="100">
+        <el-table-column label="模式" width="120">
           <template #default="{ row }"><StatusTag :value="row.syncMode" /></template>
         </el-table-column>
-        <el-table-column label="状态" width="80">
+        <el-table-column label="状态" width="90">
           <template #default="{ row }"><StatusTag :value="row.status" /></template>
         </el-table-column>
         <el-table-column label="调度" width="110">
           <template #default="{ row }"><span class="mono cron">{{ row.cronExpression || "—" }}</span></template>
         </el-table-column>
-        <el-table-column label="操作" min-width="200">
+        <el-table-column label="操作" min-width="170">
           <template #default="{ row }">
             <div class="actions">
               <el-button size="small" type="primary" @click="handleTrigger(row)" :plain="true">执行</el-button>
               <el-button size="small" :type="row.status === 'ENABLED' ? 'warning' : 'success'" @click="toggleStatus(row)" :plain="true">
-                {{ row.status === "ENABLED" ? "禁用" : "启用" }}
+                {{ row.status === "ENABLED" ? "停用" : "启用" }}
               </el-button>
               <el-button size="small" @click="$router.push('/tasks/' + row.id + '/edit')">编辑</el-button>
               <el-button size="small" @click="$router.push('/tasks/' + row.id + '/records')">历史</el-button>
