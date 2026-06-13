@@ -21,6 +21,9 @@ spring:
       enabled: false
 
 logging:
+  charset:
+    console: GBK
+    file: UTF-8
   level:
     com.datasync: INFO
     org.springframework.batch: INFO
