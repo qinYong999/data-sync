@@ -11,9 +11,9 @@
 
     <div class="table-container fade-in-up delay-1">
       <el-table :data="data" v-loading="loading" empty-text="暂无同步任务，请先创建一个" stripe border style="width:100%">
-        <el-table-column prop="id" label="ID" width="55" />
-        <el-table-column prop="name" label="任务名称" min-width="110" />
-        <el-table-column label="源" min-width="120">
+        <el-table-column prop="id" label="ID" width="50" />
+        <el-table-column prop="name" label="任务名称" min-width="90" />
+        <el-table-column label="源" min-width="100">
           <template #default="{ row }">
             <span class="table-path">
               <span class="mono ds">{{ dsNameMap[row.sourceDsId] || "DS:" + row.sourceDsId }}</span>
@@ -22,7 +22,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="目标" min-width="120">
+        <el-table-column label="目标" min-width="100">
           <template #default="{ row }">
             <span class="table-path">
               <span class="mono ds">{{ dsNameMap[row.targetDsId] || "DS:" + row.targetDsId }}</span>
@@ -31,16 +31,16 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="模式" width="110">
+        <el-table-column label="模式" width="100">
           <template #default="{ row }"><StatusTag :value="row.syncMode" /></template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column label="状态" width="80">
           <template #default="{ row }"><StatusTag :value="row.status" /></template>
         </el-table-column>
-        <el-table-column label="调度" width="120">
+        <el-table-column label="调度" width="110">
           <template #default="{ row }"><span class="mono cron">{{ row.cronExpression || "—" }}</span></template>
         </el-table-column>
-        <el-table-column label="操作" min-width="220">
+        <el-table-column label="操作" min-width="200">
           <template #default="{ row }">
             <div class="actions">
               <el-button size="small" type="primary" @click="handleTrigger(row)" :plain="true">执行</el-button>

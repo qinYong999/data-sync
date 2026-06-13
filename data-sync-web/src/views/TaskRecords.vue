@@ -37,10 +37,10 @@
         <el-table-column label="状态" width="80">
           <template #default="{ row }"><StatusTag :value="row.status" /></template>
         </el-table-column>
-        <el-table-column label="处理量" width="140">
+        <el-table-column label="处理量" width="170">
           <template #default="{ row }">
             <span class="mono read">{{ row.readRows }}</span>
-            <span class="arrow">→</span>
+            <span class="arrow">&rarr;</span>
             <span class="mono write">{{ row.writeRows }}</span>
             <span v-if="row.errorRows > 0" class="mono err">+{{ row.errorRows }}err</span>
           </template>
