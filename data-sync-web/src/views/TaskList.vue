@@ -40,7 +40,7 @@
         <el-table-column label="调度" width="110">
           <template #default="{ row }"><span class="mono cron">{{ row.cronExpression || "—" }}</span></template>
         </el-table-column>
-        <el-table-column label="操作" min-width="220">
+        <el-table-column label="操作" min-width="80">
           <template #default="{ row }">
             <div class="actions">
               <el-button size="small" type="primary" @click="handleTrigger(row)" :plain="true">执行</el-button>
