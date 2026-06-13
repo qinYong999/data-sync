@@ -70,8 +70,54 @@
                 留空则首次执行时自动从源表获取最大值作为起始值
               </div>
             </el-form-item>
-            <el-form-item label="Cron 表达式">
-              <el-input v-model="form.cronExpression" placeholder="0 */5 * * * ?" />
+            <el-form-item label="Cron 表达式" class="cron-form-item">
+              <div class="cron-input-row">
+                <el-input v-model="form.cronExpression" placeholder="0 */5 * * * ?" class="cron-input" />
+                <el-button size="small" @click="showCronBuilder = !showCronBuilder" :type="showCronBuilder ? 'primary' : 'default'" :plain="true">
+                  {{ showCronBuilder ? "收起" : "可视化生成" }}
+                </el-button>
+              </div>
+
+              <!-- 快捷预设 -->
+              <div class="cron-presets" v-if="form.cronExpression">
+                <span class="cron-preset-label">快捷:</span>
+                <el-button size="small" @click="setCron('0 */5 * * * ?')" :plain="true">每5分钟</el-button>
+                <el-button size="small" @click="setCron('0 */10 * * * ?')" :plain="true">每10分钟</el-button>
+                <el-button size="small" @click="setCron('0 0 * * * ?')" :plain="true">每小时</el-button>
+                <el-button size="small" @click="setCron('0 0 2 * * ?')" :plain="true">每天凌晨2点</el-button>
+                <el-button size="small" @click="setCron('0 0 9 * * ?')" :plain="true">每天早9点</el-button>
+                <el-button size="small" @click="setCron('')" :plain="true">清除</el-button>
+              </div>
+
+              <!-- 可视化生成器 -->
+              <div v-if="showCronBuilder" class="cron-builder">
+                <div class="cron-builder-row">
+                  <span class="cron-builder-label">分钟</span>
+                  <el-select v-model="cronMinute" size="small" style="width:100px">
+                    <el-option v-for="m in 60" :key="m-1" :label="String(m-1).padStart(2,'0')" :value="m-1" />
+                    <el-option label="每整点" :value="0" />
+                    <el-option label="每5分钟" :value="null" />
+                  </el-select>
+                  <span class="cron-builder-hint">0-59, 选"每5分钟"则忽略下方小时设置</span>
+                </div>
+                <div class="cron-builder-row">
+                  <span class="cron-builder-label">小时</span>
+                  <el-select v-model="cronHour" size="small" style="width:100px" :disabled="cronMinute !== 0 && cronMinute !== null">
+                    <el-option v-for="h in 24" :key="h-1" :label="String(h-1).padStart(2,'0')" :value="h-1" />
+                    <el-option label="每小时" :value="null" />
+                  </el-select>
+                </div>
+                <div class="cron-builder-row">
+                  <span class="cron-builder-label">星期</span>
+                  <el-checkbox-group v-model="cronWeekDays" size="small">
+                    <el-checkbox-button v-for="d in weekDays" :key="d.value" :label="d.value">{{ d.label }}</el-checkbox-button>
+                  </el-checkbox-group>
+                </div>
+                <div class="cron-builder-actions">
+                  <el-button size="small" type="primary" @click="applyCronBuilder">应用</el-button>
+                  <el-button size="small" @click="showCronBuilder = false">取消</el-button>
+                </div>
+              </div>
             </el-form-item>
             <el-form-item label="每页行数">
               <el-input-number v-model="form.pageSize" :min="100" :max="10000" :step="100" />
@@ -156,6 +202,51 @@ const incrDateValue = computed({
   set: (val: any) => { form.incrValue = val || "" }
 })
 
+// Cron 表达式生成器
+const showCronBuilder = ref(false)
+const cronMinute = ref<number | null>(0)
+const cronHour = ref<number | null>(null)
+const cronWeekDays = ref<number[]>([])
+const weekDays = [
+  { label: "日", value: 1 },
+  { label: "一", value: 2 },
+  { label: "二", value: 3 },
+  { label: "三", value: 4 },
+  { label: "四", value: 5 },
+  { label: "五", value: 6 },
+  { label: "六", value: 7 },
+]
+
+function setCron(expr: string) {
+  form.cronExpression = expr
+}
+
+function applyCronBuilder() {
+  let expr = "0 "
+  // 分钟
+  if (cronMinute.value === null) {
+    expr += "*/5 * * * ?"
+  } else {
+    expr += String(cronMinute.value) + " "
+    // 小时
+    if (cronHour.value === null) {
+      expr += "* * * ?"
+    } else {
+      expr += String(cronHour.value) + " "
+      // 日/Month固定为 * *
+      expr += "* * "
+      // 星期
+      if (cronWeekDays.value.length > 0) {
+        expr += cronWeekDays.value.sort((a, b) => a - b).join(",")
+      } else {
+        expr += "?"
+      }
+    }
+  }
+  form.cronExpression = expr
+  showCronBuilder.value = false
+}
+
 function onMappingsUpdate(mappings: any[]) { fieldMappings.value = mappings }
 
 onMounted(async () => {
@@ -226,6 +317,22 @@ async function handleSave() {
 }
 .form-actions { display: flex; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-subtle); }
 :deep(.el-input-number), :deep(.el-select) { width: 100%; }
+
+/* Cron 生成器 */
+.cron-form-item :deep(.el-form-item__content) { flex-direction: column; align-items: stretch; }
+.cron-input-row { display: flex; gap: 8px; }
+.cron-input { flex: 1; }
+.cron-presets { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.cron-preset-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.cron-builder {
+  margin-top: 10px; padding: 14px; border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); background: var(--bg-secondary);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.cron-builder-row { display: flex; align-items: center; gap: 12px; }
+.cron-builder-label { font-size: 13px; color: var(--text-secondary); min-width: 42px; }
+.cron-builder-hint { font-size: 11px; color: var(--text-muted); }
+.cron-builder-actions { display: flex; gap: 6px; margin-top: 4px; }
 
 .mapping-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .mapping-placeholder { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; color: var(--text-muted); text-align: center; gap: 10px; }
