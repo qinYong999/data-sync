@@ -2,6 +2,7 @@ package com.datasync.server.service;
 
 import com.datasync.core.job.SyncEventBus;
 import com.datasync.core.job.SyncJobConfig;
+import org.springframework.jdbc.core.JdbcTemplate;
 import com.datasync.core.model.FieldMapping;
 import com.datasync.core.model.SyncTaskConfig;
 import com.datasync.core.model.enums.DbType;
@@ -172,6 +173,30 @@ public class SyncExecutionService {
                 record.setErrorMessage(null);
             }
             recordRepo.save(record);
+
+            // ====================== 自动推进增量同步断点 ======================
+            if ("COMPLETED".equals(statusName) && hasIncrColumn && totalRead > 0) {
+                try {
+                    JdbcTemplate sourceJdbc = new JdbcTemplate(sourceDs);
+                    String maxValue = sourceJdbc.queryForObject(
+                        "SELECT MAX(" + taskEntity.getIncrColumn() + ") FROM " + taskEntity.getSourceTable(),
+                        String.class
+                    );
+                    if (maxValue != null && !maxValue.isBlank()) {
+                        taskEntity.setIncrValue(maxValue);
+                        taskRepo.save(taskEntity);
+                        SyncEventBus.publish("  · 增量游标已推进: " + taskEntity.getIncrColumn() + " = " + maxValue);
+                    }
+                    // 首次同步后设置 incrValue（之前为空）
+                    if (!hasIncrValue && maxValue != null && !maxValue.isBlank()) {
+                        SyncEventBus.publish("  · 首次同步完成，增量起始值已设定为 " + taskEntity.getIncrColumn() + " = " + maxValue
+                            + "，下次将执行增量同步");
+                    }
+                } catch (Exception e) {
+                    log.warn("推进增量游标失败(不影响同步结果): {}", e.getMessage());
+                }
+            }
+            // ======================
 
             String statusText = "COMPLETED".equals(statusName) ? "成功" : "失败";
             long durationMs = java.time.Duration.between(record.getStartTime(), record.getEndTime()).toMillis();
