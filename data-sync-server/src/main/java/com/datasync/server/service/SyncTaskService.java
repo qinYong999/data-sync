@@ -22,11 +22,11 @@ public class SyncTaskService {
 
     public Page<SyncTaskEntity> findAll(Pageable pageable) { return taskRepo.findAll(pageable); }
     public SyncTaskEntity findById(Long id) {
-        return taskRepo.findById(id).orElseThrow(() -> new RuntimeException("?????: " + id));
+        return taskRepo.findById(id).orElseThrow(() -> new RuntimeException("任务不存在: " + id));
     }
     public SyncTaskEntity create(TaskDTO dto) {
-        dsRepo.findById(dto.getSourceDsId()).orElseThrow(() -> new RuntimeException("???????: " + dto.getSourceDsId()));
-        dsRepo.findById(dto.getTargetDsId()).orElseThrow(() -> new RuntimeException("????????: " + dto.getTargetDsId()));
+        dsRepo.findById(dto.getSourceDsId()).orElseThrow(() -> new RuntimeException("源数据源不存在: " + dto.getSourceDsId()));
+        dsRepo.findById(dto.getTargetDsId()).orElseThrow(() -> new RuntimeException("目标数据源不存在: " + dto.getTargetDsId()));
         return taskRepo.save(toEntity(dto));
     }
     public SyncTaskEntity update(Long id, TaskDTO dto) {
@@ -39,7 +39,7 @@ public class SyncTaskService {
         if (dto.getBatchSize() != null) e.setBatchSize(dto.getBatchSize());
         if (dto.getFieldMappings() != null) try {
             e.setMappingJson(mapper.writeValueAsString(dto.getFieldMappings()));
-        } catch (JsonProcessingException ex) { throw new RuntimeException("?????", ex); }
+        } catch (JsonProcessingException ex) { throw new RuntimeException("字段映射JSON序列化失败", ex); }
         return taskRepo.save(e);
     }
     public void delete(Long id) { taskRepo.deleteById(id); }
@@ -58,7 +58,7 @@ public class SyncTaskService {
         if (dto.getBatchSize() != null) e.setBatchSize(dto.getBatchSize());
         if (dto.getFieldMappings() != null) try {
             e.setMappingJson(mapper.writeValueAsString(dto.getFieldMappings()));
-        } catch (JsonProcessingException ex) { throw new RuntimeException("?????", ex); }
+        } catch (JsonProcessingException ex) { throw new RuntimeException("字段映射JSON序列化失败", ex); }
         return e;
     }
 }

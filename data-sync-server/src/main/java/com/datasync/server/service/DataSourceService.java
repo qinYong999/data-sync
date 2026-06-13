@@ -23,7 +23,7 @@ public class DataSourceService {
 
     public Page<DataSourceEntity> findAll(Pageable pageable) { return repository.findAll(pageable); }
     public DataSourceEntity findById(Long id) {
-        return repository.findById(id).orElseThrow(() -> new RuntimeException("??????: " + id));
+        return repository.findById(id).orElseThrow(() -> new RuntimeException("数据源不存在: " + id));
     }
     public DataSourceEntity create(DataSourceDTO dto) { return repository.save(toEntity(dto)); }
     public DataSourceEntity update(Long id, DataSourceDTO dto) {
@@ -62,7 +62,10 @@ public class DataSourceService {
                     }
                 }
             }
-        } catch (Exception ex) { throw new RuntimeException("???????: " + ex.getMessage()); }
+        } catch (Exception ex) {
+            String detail = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
+            throw new RuntimeException("获取列信息失败: " + detail);
+        }
         return cols;
     }
 
@@ -71,7 +74,7 @@ public class DataSourceService {
             return String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai", dto.getHost(), dto.getPort(), dto.getDatabaseName());
         if ("DM8".equalsIgnoreCase(dto.getDbType()))
             return String.format("jdbc:dm://%s:%d/%s", dto.getHost(), dto.getPort(), dto.getDatabaseName());
-        throw new IllegalArgumentException("?????????: " + dto.getDbType());
+        throw new IllegalArgumentException("不支持的数据库类型: " + dto.getDbType());
     }
     private DataSourceEntity toEntity(DataSourceDTO dto) {
         DataSourceEntity e = new DataSourceEntity();
