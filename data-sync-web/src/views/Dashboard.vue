@@ -16,7 +16,7 @@
       <el-table :data="recentFailures" v-loading="failsLoading" empty-text="暂无失败记录" stripe border style="width:100%">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="taskId" label="任务ID" width="70" />
-        <el-table-column label="时间" width="150">
+        <el-table-column label="时间" width="170">
           <template #default="{ row }">{{ formatTime(row.startTime) }}</template>
         </el-table-column>
         <el-table-column label="已读取" width="80">

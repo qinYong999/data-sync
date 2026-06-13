@@ -28,10 +28,10 @@
     <div class="table-container fade-in-up delay-2">
       <el-table :data="pagedRecords" v-loading="loading" empty-text="暂无执行记录" stripe border style="width:100%">
         <el-table-column prop="id" label="#" width="55" />
-        <el-table-column label="开始时间" width="150">
+        <el-table-column label="开始时间" width="170">
           <template #default="{ row }">{{ formatTime(row.startTime) }}</template>
         </el-table-column>
-        <el-table-column label="结束时间" width="150">
+        <el-table-column label="结束时间" width="170">
           <template #default="{ row }">{{ formatTime(row.endTime) }}</template>
         </el-table-column>
         <el-table-column label="状态" width="80">
@@ -45,7 +45,7 @@
             <span v-if="row.errorRows > 0" class="mono err">+{{ row.errorRows }}err</span>
           </template>
         </el-table-column>
-        <el-table-column label="触发" width="70">
+        <el-table-column label="触发" width="90">
           <template #default="{ row }"><StatusTag :value="row.triggerType" /></template>
         </el-table-column>
         <el-table-column label="执行结果" min-width="220" show-overflow-tooltip>
