@@ -59,16 +59,23 @@ public class SyncExecutionService {
     }
 
     /**
-     * 异步执行同步任务，立即返回
+     * 异步执行同步任务，立即返回（手动触发）
      */
     public CompletableFuture<Long> executeTaskAsync(Long taskId) {
-        return CompletableFuture.supplyAsync(() -> executeTask(taskId));
+        return CompletableFuture.supplyAsync(() -> executeTask(taskId, "MANUAL"));
     }
 
     /**
-     * 执行同步任务（同步）
+     * 执行同步任务（同步，手动触发）
      */
     public Long executeTask(Long taskId) {
+        return executeTask(taskId, "MANUAL");
+    }
+
+    /**
+     * 执行同步任务（同步，指定触发方式）
+     */
+    public Long executeTask(Long taskId, String triggerType) {
         // 加载任务配置
         SyncTaskEntity taskEntity = taskRepo.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("任务不存在: " + taskId));
@@ -82,7 +89,7 @@ public class SyncExecutionService {
         record.setTaskId(taskId);
         record.setStartTime(LocalDateTime.now());
         record.setStatus("RUNNING");
-        record.setTriggerType("MANUAL");
+        record.setTriggerType(triggerType);
         record = recordRepo.save(record);
 
         HikariDataSource sourceDs = null;
