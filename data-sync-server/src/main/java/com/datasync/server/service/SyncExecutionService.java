@@ -229,7 +229,7 @@ public class SyncExecutionService {
             }
             SyncEventBus.publish(summary);
 
-            log.info("任务 {} 手动触发执行完成，状态: {}", taskId, execution.getStatus());
+            log.info("任务 {} ({})执行完成，状态: {}", taskId, "SCHEDULED".equals(triggerType) ? "定时" : "手动", execution.getStatus());
             return record.getId();
 
         } catch (Exception e) {
