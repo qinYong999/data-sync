@@ -3,6 +3,7 @@
     <PageHeader>
       <template #title><h2>执行历史</h2></template>
       <template #actions>
+        <el-button @click="loadRecords" :loading="loading" :plain="true">刷新列表</el-button>
         <el-button type="primary" @click="handleTrigger" :loading="executing">手动执行</el-button>
       </template>
     </PageHeader>

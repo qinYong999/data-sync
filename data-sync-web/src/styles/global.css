@@ -246,7 +246,7 @@ h3 { font-size: 16px; }
   border: 1px solid var(--border-subtle) !important;
   margin: 0 2px;
 }
-.el-pager li.active { background: var(--accent) !important; border-color: var(--accent) !important; color: #ffffff !important; }
+.el-pager li.active { background: var(--accent) !important; border-color: var(--accent) !important; color: #ffffff !important; font-weight: 600; }
 .el-form-item__label { font-weight: 500; color: var(--text-secondary) !important; }
 .el-menu { border-right: none !important; }
 .el-menu-item { margin: 2px 8px; border-radius: var(--radius-sm); }
