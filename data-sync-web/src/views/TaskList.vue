@@ -10,7 +10,7 @@
     </PageHeader>
 
     <div class="table-container fade-in-up delay-1">
-      <el-table :data="data" v-loading="loading" empty-text="暂无同步任务，请先创建一个" stripe border style="width:100%">
+      <el-table :data="data" v-loading="loading" empty-text="暂无同步任务，请先创建一个" stripe border style="width:100%" @row-click="goToRecords">
         <el-table-column prop="id" label="ID" width="50" />
         <el-table-column prop="name" label="任务名称" min-width="90" />
         <el-table-column label="源" min-width="100">
@@ -58,6 +58,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
+import { useRouter } from "vue-router"
 import { Plus } from "@element-plus/icons-vue"
 import { taskApi } from "@/api/task"
 import { datasourceApi } from "@/api/datasource"
@@ -70,7 +71,14 @@ import type { TaskVO, DataSourceVO } from "@/types"
 const data = ref<TaskVO[]>([])
 const loading = ref(false)
 const dsNameMap = ref<Record<number, string>>({})
+const router = useRouter()
 const confirm = useConfirm()
+
+function goToRecords(row: any, column: any, event: any) {
+  // 点击按钮不触发行跳转
+  if (event && event.target && event.target.closest('button, .el-button, .el-checkbox, .el-switch')) return
+  router.push('/tasks/' + row.id + '/records')
+}
 
 
 function formatTime(iso: string): string {
