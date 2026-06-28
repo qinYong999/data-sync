@@ -66,4 +66,21 @@ public class DataSourceController {
         try { return ResponseEntity.ok(service.getTableColumns(id, table)); }
         catch (Exception e) { return ResponseEntity.ok(List.of()); }
     }
+
+    @PostMapping("/{id}/sql-columns")
+    public ResponseEntity<List<Map<String, Object>>> getSqlColumns(
+            @PathVariable Long id, @RequestBody Map<String, String> body) {
+        try { return ResponseEntity.ok(service.getSqlColumns(id, body.get("sql"))); }
+        catch (Exception e) { return ResponseEntity.ok(List.of()); }
+    }
+
+    @PostMapping("/{id}/sql-preview")
+    public ResponseEntity<List<Map<String, Object>>> previewSql(
+            @PathVariable Long id, @RequestBody Map<String, String> body) {
+        try {
+            String sql = body.get("sql");
+            int limit = body.containsKey("limit") ? Integer.parseInt(body.get("limit")) : 5;
+            return ResponseEntity.ok(service.previewSql(id, sql, limit));
+        } catch (Exception e) { return ResponseEntity.ok(List.of()); }
+    }
 }

@@ -50,6 +50,18 @@ public class SqlBuilder {
             table, cols, placeholders, updateClause);
     }
 
+    public static String buildCustomSqlMeta(String customSql) {
+        return "SELECT * FROM (" + customSql + ") _sql_wrapper LIMIT 0";
+    }
+
+    public static String buildCustomSqlPreview(String customSql, int limit) {
+        return "SELECT * FROM (" + customSql + ") _sql_wrapper LIMIT " + limit;
+    }
+
+    public static String buildCustomSqlCount(String customSql) {
+        return "SELECT COUNT(*) FROM (" + customSql + ") _sql_wrapper";
+    }
+
     private static String buildDm8Merge(String table, String[] columns, String[] pkColumns) {
         String cols = String.join(", ", columns);
         String placeholders = Stream.generate(() -> "?").limit(columns.length).collect(Collectors.joining(", "));

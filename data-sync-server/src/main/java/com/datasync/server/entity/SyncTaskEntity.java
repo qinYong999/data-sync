@@ -61,6 +61,14 @@ public class SyncTaskEntity {
     @Comment("字段映射配置（JSON格式）")
     private String mappingJson;
 
+    @Column(name = "source_mode", length = 20)
+    @Comment("数据源模式：TABLE / CUSTOM_SQL")
+    private String sourceMode = "TABLE";
+
+    @Column(name = "source_sql", columnDefinition = "TEXT")
+    @Comment("自定义查询SQL（source_mode为CUSTOM_SQL时使用）")
+    private String sourceSql;
+
     @Column(length = 20)
     @Comment("任务状态：ENABLED / DISABLED")
     private String status = "DISABLED";
@@ -89,6 +97,8 @@ public class SyncTaskEntity {
     public Integer getPageSize() { return pageSize; } public void setPageSize(Integer v) { this.pageSize = v; }
     public Integer getBatchSize() { return batchSize; } public void setBatchSize(Integer v) { this.batchSize = v; }
     public String getMappingJson() { return mappingJson; } public void setMappingJson(String v) { this.mappingJson = v; }
+    public String getSourceMode() { return sourceMode; } public void setSourceMode(String v) { this.sourceMode = v; }
+    public String getSourceSql() { return sourceSql; } public void setSourceSql(String v) { this.sourceSql = v; }
     public String getStatus() { return status; } public void setStatus(String v) { this.status = v; }
     public LocalDateTime getCreatedAt() { return createdAt; } public void setCreatedAt(LocalDateTime t) { this.createdAt = t; }
     public LocalDateTime getUpdatedAt() { return updatedAt; } public void setUpdatedAt(LocalDateTime t) { this.updatedAt = t; }

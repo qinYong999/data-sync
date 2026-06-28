@@ -13,4 +13,8 @@ export const datasourceApi = {
   getTables: (id: number) => api.get<string[]>("/datasources/" + id + "/tables"),
   getTableColumns: (id: number, table: string) =>
     api.get<ColumnInfo[]>("/datasources/" + id + "/columns?table=" + encodeURIComponent(table)),
+  getSqlColumns: (id: number, sql: string) =>
+    api.post<ColumnInfo[]>("/datasources/" + id + "/sql-columns", { sql }),
+  previewSql: (id: number, sql: string, limit?: number) =>
+    api.post<Record<string, any>[]>("/datasources/" + id + "/sql-preview", { sql, limit: limit || 5 }),
 }

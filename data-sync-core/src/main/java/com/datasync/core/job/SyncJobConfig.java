@@ -3,6 +3,7 @@ package com.datasync.core.job;
 import com.datasync.core.job.processor.ColumnMappingProcessor;
 import com.datasync.core.job.reader.PageReader;
 import com.datasync.core.job.reader.IncrementalReader;
+import com.datasync.core.job.reader.CustomSqlReader;
 import com.datasync.core.job.writer.JdbcBatchWriter;
 import com.datasync.core.job.writer.Dm8BatchWriter;
 import com.datasync.core.mapper.MySqlToDm8TypeMapper;
@@ -82,6 +83,13 @@ public class SyncJobConfig {
     }
 
     private ItemReader<Map<String, Object>> buildReader(SyncTaskConfig config, DataSource sourceDs) {
+        // 自定义 SQL 模式
+        if ("CUSTOM_SQL".equals(config.getSourceMode())
+            && config.getSourceSql() != null && !config.getSourceSql().isBlank()) {
+            SqlValidator.validateSelectSql(config.getSourceSql());
+            return new CustomSqlReader(sourceDs, config.getSourceSql(), config.getPageSize());
+        }
+        // 增量读取
         boolean hasIncrColumn = config.getIncrColumn() != null && !config.getIncrColumn().isBlank();
         boolean hasIncrValue = config.getIncrValue() != null && !config.getIncrValue().isBlank();
         if (hasIncrColumn && hasIncrValue

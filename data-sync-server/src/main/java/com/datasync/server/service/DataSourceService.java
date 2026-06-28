@@ -1,5 +1,6 @@
 package com.datasync.server.service;
 
+import com.datasync.core.job.SqlValidator;
 import com.datasync.server.entity.DataSourceEntity;
 import com.datasync.server.model.DataSourceDTO;
 import com.datasync.server.repository.DataSourceRepository;
@@ -11,6 +12,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,9 +45,7 @@ public class DataSourceService {
 
     public List<Map<String, Object>> getTableColumns(Long dsId, String tableName) {
         DataSourceEntity e = findById(dsId);
-        String url = "MYSQL".equalsIgnoreCase(e.getDbType())
-            ? String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai", e.getHost(), e.getPort(), e.getDatabaseName())
-            : String.format("jdbc:dm://%s:%d/%s", e.getHost(), e.getPort(), e.getDatabaseName());
+        String url = buildUrl(e);
         List<Map<String, Object>> cols = new ArrayList<>();
         try (Connection c = DriverManager.getConnection(url, e.getUsername(), e.getPassword())) {
             DatabaseMetaData meta = c.getMetaData();
@@ -74,6 +74,76 @@ public class DataSourceService {
         return cols;
     }
 
+    /** 获取指定数据源的所有表名 */
+    public List<String> getTableNames(Long dsId) {
+        DataSourceEntity e = findById(dsId);
+        String url = buildUrl(e);
+        List<String> tables = new ArrayList<>();
+        try (Connection c = DriverManager.getConnection(url, e.getUsername(), e.getPassword());
+             ResultSet rs = c.getMetaData().getTables(e.getDatabaseName(), null, "%", new String[]{"TABLE", "VIEW"})) {
+            while (rs.next()) tables.add(rs.getString("TABLE_NAME"));
+        } catch (Exception ex) {
+            throw new RuntimeException("获取表列表失败: " + ex.getMessage());
+        }
+        Collections.sort(tables);
+        return tables;
+    }
+
+    /** 预览自定义 SQL 的前 N 行结果 */
+    public List<Map<String, Object>> previewSql(Long dsId, String sql, int limit) {
+        SqlValidator.validateSelectSql(sql);
+        DataSourceEntity e = findById(dsId);
+        String url = buildUrl(e);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String previewSql = "SELECT * FROM (" + sql + ") _sql_wrapper LIMIT " + limit;
+        try (Connection conn = DriverManager.getConnection(url, e.getUsername(), e.getPassword());
+             java.sql.Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(previewSql)) {
+            ResultSetMetaData meta = rs.getMetaData();
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                for (int i = 1; i <= meta.getColumnCount(); i++) {
+                    row.put(meta.getColumnLabel(i), rs.getObject(i));
+                }
+                rows.add(row);
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("预览SQL失败: " + (ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName()));
+        }
+        return rows;
+    }
+
+    /** 获取自定义 SQL 的查询结果列信息 */
+    public List<Map<String, Object>> getSqlColumns(Long dsId, String sql) {
+        SqlValidator.validateSelectSql(sql);
+        DataSourceEntity e = findById(dsId);
+        String url = buildUrl(e);
+        List<Map<String, Object>> cols = new ArrayList<>();
+        String metaSql = "SELECT * FROM (" + sql + ") _sql_wrapper LIMIT 0";
+        try (Connection conn = DriverManager.getConnection(url, e.getUsername(), e.getPassword());
+             java.sql.Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(metaSql)) {
+            ResultSetMetaData meta = rs.getMetaData();
+            for (int i = 1; i <= meta.getColumnCount(); i++) {
+                Map<String, Object> col = new HashMap<>();
+                col.put("name", meta.getColumnLabel(i));
+                col.put("type", meta.getColumnTypeName(i));
+                col.put("nullable", true);
+                col.put("primaryKey", false);
+                cols.add(col);
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("获取自定义SQL列信息失败: " + (ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName()));
+        }
+        return cols;
+    }
+
+    private String buildUrl(DataSourceEntity e) {
+        return "MYSQL".equalsIgnoreCase(e.getDbType())
+            ? String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai", e.getHost(), e.getPort(), e.getDatabaseName())
+            : String.format("jdbc:dm://%s:%d/%s", e.getHost(), e.getPort(), e.getDatabaseName());
+    }
+
     private String buildJdbcUrl(DataSourceDTO dto) {
         if ("MYSQL".equalsIgnoreCase(dto.getDbType()))
             return String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai", dto.getHost(), dto.getPort(), dto.getDatabaseName());
@@ -87,24 +157,5 @@ public class DataSourceService {
         e.setPort(dto.getPort()); e.setDatabaseName(dto.getDatabaseName());
         e.setUsername(dto.getUsername()); e.setPassword(dto.getPassword());
         return e;
-    
-
-    }
-
-    /** 获取指定数据源的所有表名 */
-    public List<String> getTableNames(Long dsId) {
-        DataSourceEntity e = findById(dsId);
-        String url = "MYSQL".equalsIgnoreCase(e.getDbType())
-            ? String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai", e.getHost(), e.getPort(), e.getDatabaseName())
-            : String.format("jdbc:dm://%s:%d/%s", e.getHost(), e.getPort(), e.getDatabaseName());
-        List<String> tables = new ArrayList<>();
-        try (Connection c = DriverManager.getConnection(url, e.getUsername(), e.getPassword());
-             ResultSet rs = c.getMetaData().getTables(e.getDatabaseName(), null, "%", new String[]{"TABLE", "VIEW"})) {
-            while (rs.next()) tables.add(rs.getString("TABLE_NAME"));
-        } catch (Exception ex) {
-            throw new RuntimeException("获取表列表失败: " + ex.getMessage());
-        }
-        Collections.sort(tables);
-        return tables;
     }
 }

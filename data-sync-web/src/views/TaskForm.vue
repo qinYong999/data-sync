@@ -44,6 +44,36 @@
             </el-form-item>
           </div>
 
+          <div class="form-section-label">数据源模式</div>
+          <div class="form-grid">
+            <el-form-item label="模式选择" class="full-width-item">
+              <el-radio-group v-model="form.sourceMode">
+                <el-radio value="TABLE">表模式（从源表读取）</el-radio>
+                <el-radio value="CUSTOM_SQL">自定义 SQL</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="form.sourceMode === 'CUSTOM_SQL'" label="查询 SQL" class="full-width-item">
+              <el-input
+                v-model="form.sourceSql"
+                type="textarea"
+                :rows="5"
+                placeholder="SELECT ... FROM ... WHERE ..."
+                style="font-family:var(--font-mono);font-size:13px"
+              />
+              <div style="display:flex;gap:8px;margin-top:6px">
+                <el-button size="small" @click="handlePreviewSql" :loading="previewLoading" :plain="true">预览结果</el-button>
+                <el-button size="small" @click="handleGetSqlColumns" :loading="columnsLoading" :plain="true">获取列信息</el-button>
+              </div>
+              <!-- SQL 预览结果 -->
+              <div v-if="previewData.length > 0" class="sql-preview">
+                <div class="sql-preview-header">预览结果（前 {{ previewData.length }} 行）</div>
+                <el-table :data="previewData" border size="small" max-height="200">
+                  <el-table-column v-for="col in previewColumns" :key="col" :prop="col" :label="col" show-overflow-tooltip />
+                </el-table>
+              </div>
+            </el-form-item>
+          </div>
+
           <div class="form-section-label">高级配置</div>
           <div class="form-grid">
             <el-form-item v-if="form.syncMode !== 'FULL'" label="增量字段">
@@ -177,7 +207,7 @@ const rules = {
 
 const form = reactive<TaskFormType>({
   name: "", sourceDsId: null, targetDsId: null, sourceTable: "", targetTable: "",
-  syncMode: "FULL_INCR", incrColumn: "", incrValue: "", cronExpression: "", pageSize: 1000, batchSize: 500,
+  syncMode: "FULL_INCR", incrColumn: "", incrValue: "", cronExpression: "", sourceMode: "TABLE", sourceSql: "", pageSize: 1000, batchSize: 500,
 })
 
 const sourceTables = ref<string[]>([])
@@ -186,6 +216,10 @@ const sourceColumns = ref<any[]>([])
 const datasources = ref<any[]>([])
 const mappingTaskId = ref<number | null>(null)
 const fieldMappings = ref<any[]>([])
+const previewLoading = ref(false)
+const columnsLoading = ref(false)
+const previewData = ref<any[]>([])
+const previewColumns = ref<string[]>([])
 
 // 判断增量字段是否为时间类型
 const isIncrColumnTimeType = computed(() => {
@@ -269,6 +303,8 @@ onMounted(async () => {
       form.cronExpression = task.cronExpression || ""
       form.pageSize = task.pageSize ?? 1000
       form.batchSize = task.batchSize ?? 500
+      form.sourceMode = task.sourceMode || "TABLE"
+      form.sourceSql = task.sourceSql || ""
       mappingTaskId.value = Number(route.params.id)
     } catch {}
   }
@@ -287,6 +323,34 @@ watch([() => form.sourceDsId, () => form.sourceTable], async ([dsId, table]) => 
     sourceColumns.value = []
   }
 }, { immediate: false })
+
+async function handlePreviewSql() {
+  if (!form.sourceDsId || !form.sourceSql) { ElMessage.warning("请先选择源数据源并填写 SQL"); return }
+  previewLoading.value = true
+  previewData.value = []
+  previewColumns.value = []
+  try {
+    const data = await datasourceApi.previewSql(form.sourceDsId, form.sourceSql)
+    if (data.length > 0) {
+      previewColumns.value = Object.keys(data[0])
+      previewData.value = data
+    } else {
+      ElMessage.info("SQL 执行成功，无返回数据")
+    }
+  } catch { previewData.value = []; previewColumns.value = [] }
+  finally { previewLoading.value = false }
+}
+
+async function handleGetSqlColumns() {
+  if (!form.sourceDsId || !form.sourceSql) { ElMessage.warning("请先选择源数据源并填写 SQL"); return }
+  columnsLoading.value = true
+  try {
+    const cols = await datasourceApi.getSqlColumns(form.sourceDsId, form.sourceSql)
+    sourceColumns.value = cols
+    ElMessage.success("获取到 " + cols.length + " 个列")
+  } catch { sourceColumns.value = [] }
+  finally { columnsLoading.value = false }
+}
 
 async function handleSave() {
   saving.value = true
@@ -333,6 +397,10 @@ async function handleSave() {
 .cron-builder-label { font-size: 13px; color: var(--text-secondary); min-width: 42px; }
 .cron-builder-hint { font-size: 11px; color: var(--text-muted); }
 .cron-builder-actions { display: flex; gap: 6px; margin-top: 4px; }
+
+.full-width-item { grid-column: 1 / -1; }
+.sql-preview { margin-top: 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; }
+.sql-preview-header { padding: 6px 10px; font-size: 12px; color: var(--text-muted); background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); }
 
 .mapping-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .mapping-placeholder { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; color: var(--text-muted); text-align: center; gap: 10px; }

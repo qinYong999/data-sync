@@ -58,6 +58,8 @@ export interface TaskVO {
   pageSize: number
   batchSize: number
   mappingJson?: string
+  sourceMode?: string
+  sourceSql?: string
   status: string
   createdAt?: string
   updatedAt?: string
@@ -74,6 +76,8 @@ export interface TaskForm {
   incrColumn: string
   incrValue: string
   cronExpression: string
+  sourceMode: string
+  sourceSql: string
   pageSize: number
   batchSize: number
   fieldMappings?: FieldMapping[]

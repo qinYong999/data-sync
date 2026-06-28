@@ -5,6 +5,7 @@ public class TaskDTO {
     private String sourceTable; private String targetTable; private String syncMode;
     private String incrColumn; private String incrValue; private String cronExpression;
     private Integer pageSize; private Integer batchSize;
+    private String sourceMode; private String sourceSql;
     private List<FieldMappingItem> fieldMappings;
     public static class FieldMappingItem { private String sourceColumn; private String targetColumn; private String defaultValue; private boolean primaryKey;
         public String getSourceColumn() { return sourceColumn; } public void setSourceColumn(String v) { this.sourceColumn = v; }
@@ -24,5 +25,7 @@ public class TaskDTO {
     public String getCronExpression() { return cronExpression; } public void setCronExpression(String v) { this.cronExpression = v; }
     public Integer getPageSize() { return pageSize; } public void setPageSize(Integer v) { this.pageSize = v; }
     public Integer getBatchSize() { return batchSize; } public void setBatchSize(Integer v) { this.batchSize = v; }
+    public String getSourceMode() { return sourceMode; } public void setSourceMode(String v) { this.sourceMode = v; }
+    public String getSourceSql() { return sourceSql; } public void setSourceSql(String v) { this.sourceSql = v; }
     public List<FieldMappingItem> getFieldMappings() { return fieldMappings; } public void setFieldMappings(List<FieldMappingItem> v) { this.fieldMappings = v; }
 }

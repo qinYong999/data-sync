@@ -14,6 +14,8 @@ public class SyncTaskConfig {
     private Long targetDsId;
     private String sourceTable;
     private String targetTable;
+    private String sourceMode;
+    private String sourceSql;
     private SyncMode syncMode;
     private String incrColumn;
     private String incrValue;
@@ -35,6 +37,10 @@ public class SyncTaskConfig {
     public void setSourceTable(String sourceTable) { this.sourceTable = sourceTable; }
     public String getTargetTable() { return targetTable; }
     public void setTargetTable(String targetTable) { this.targetTable = targetTable; }
+    public String getSourceMode() { return sourceMode; }
+    public void setSourceMode(String sourceMode) { this.sourceMode = sourceMode; }
+    public String getSourceSql() { return sourceSql; }
+    public void setSourceSql(String sourceSql) { this.sourceSql = sourceSql; }
     public SyncMode getSyncMode() { return syncMode; }
     public void setSyncMode(SyncMode syncMode) { this.syncMode = syncMode; }
     public String getIncrColumn() { return incrColumn; }
