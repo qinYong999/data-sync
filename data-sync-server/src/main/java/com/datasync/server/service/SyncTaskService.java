@@ -50,6 +50,8 @@ public class SyncTaskService {
         e.setSourceTable(dto.getSourceTable()); e.setTargetTable(dto.getTargetTable());
         e.setSyncMode(dto.getSyncMode()); e.setIncrColumn(dto.getIncrColumn()); e.setIncrValue(dto.getIncrValue());
         e.setCronExpression(dto.getCronExpression());
+        if (dto.getSourceMode() != null) e.setSourceMode(dto.getSourceMode());
+        if (dto.getSourceSql() != null) e.setSourceSql(dto.getSourceSql());
         if (dto.getPageSize() != null) e.setPageSize(dto.getPageSize());
         if (dto.getBatchSize() != null) e.setBatchSize(dto.getBatchSize());
         if (dto.getFieldMappings() != null) try {
@@ -114,6 +116,8 @@ public class SyncTaskService {
         e.setSourceTable(dto.getSourceTable()); e.setTargetTable(dto.getTargetTable());
         e.setSyncMode(dto.getSyncMode()); e.setIncrColumn(dto.getIncrColumn()); e.setIncrValue(dto.getIncrValue());
         e.setCronExpression(dto.getCronExpression());
+        if (dto.getSourceMode() != null) e.setSourceMode(dto.getSourceMode());
+        if (dto.getSourceSql() != null) e.setSourceSql(dto.getSourceSql());
         if (dto.getPageSize() != null) e.setPageSize(dto.getPageSize());
         if (dto.getBatchSize() != null) e.setBatchSize(dto.getBatchSize());
         if (dto.getFieldMappings() != null) try {

@@ -166,7 +166,7 @@ function validateSql() {
     errorHint.value = "SQL 必须以 SELECT 开头"
     return
   }
-  if (!upper.includes(" FROM ")) {
+  if (!upper.includes(" FROM ") && !upper.includes("\nFROM ")) {
     errorHint.value = "SQL 缺少 FROM 子句"
     return
   }
