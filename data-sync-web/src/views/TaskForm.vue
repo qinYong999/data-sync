@@ -53,25 +53,27 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="form.sourceMode === 'CUSTOM_SQL'" label="查询 SQL" class="full-width-item">
-              <el-input
-                v-model="form.sourceSql"
-                type="textarea"
-                :rows="5"
-                placeholder="SELECT ... FROM ... WHERE ..."
-                style="font-family:var(--font-mono);font-size:13px"
-              />
-              <div style="display:flex;gap:8px;margin-top:6px">
-                <el-button size="small" @click="handlePreviewSql" :loading="previewLoading" :plain="true">预览结果</el-button>
-                <el-button size="small" @click="handleGetSqlColumns" :loading="columnsLoading" :plain="true">获取列信息</el-button>
-              </div>
-              <!-- SQL 预览结果 -->
-              <div v-if="previewData.length > 0" class="sql-preview">
-                <div class="sql-preview-header">预览结果（前 {{ previewData.length }} 行）</div>
-                <el-table :data="previewData" border size="small" max-height="200">
-                  <el-table-column v-for="col in previewColumns" :key="col" :prop="col" :label="col" show-overflow-tooltip />
-                </el-table>
+              <div class="sql-button-row">
+                <el-button type="primary" @click="showSqlEditor = true" size="small">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  打开 SQL 编辑器
+                </el-button>
+                <span v-if="form.sourceSql" class="sql-status">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  SQL 已配置（{{ form.sourceSql.length }} 字符）
+                </span>
               </div>
             </el-form-item>
+
+            <!-- SQL 编辑器弹窗 -->
+            <SqlEditorDialog
+              v-if="showSqlEditor"
+              :visible="showSqlEditor"
+              :sql="form.sourceSql"
+              :datasource-id="form.sourceDsId"
+              @update:sql="form.sourceSql = $event"
+              @close="showSqlEditor = false"
+            />
           </div>
 
           <div class="form-section-label">高级配置</div>
@@ -181,6 +183,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, reactive } from "vue"
+import SqlEditorDialog from "@/components/SqlEditorDialog.vue"
 import { useRoute, useRouter } from "vue-router"
 import { taskApi } from "@/api/task"
 import { datasourceApi } from "@/api/datasource"
@@ -216,10 +219,7 @@ const sourceColumns = ref<any[]>([])
 const datasources = ref<any[]>([])
 const mappingTaskId = ref<number | null>(null)
 const fieldMappings = ref<any[]>([])
-const previewLoading = ref(false)
-const columnsLoading = ref(false)
-const previewData = ref<any[]>([])
-const previewColumns = ref<string[]>([])
+const showSqlEditor = ref(false)
 
 // 判断增量字段是否为时间类型
 const isIncrColumnTimeType = computed(() => {
@@ -318,39 +318,13 @@ watch([() => form.sourceDsId, () => form.sourceTable], async ([dsId, table]) => 
   if (dsId && table) {
     try {
       sourceColumns.value = await datasourceApi.getTableColumns(dsId, table)
-    } catch { sourceColumns.value = [] }
+    } catch (e: any) { sourceColumns.value = []; ElMessage.error("获取列信息失败: " + (e.message || e)) }
   } else {
     sourceColumns.value = []
   }
 }, { immediate: false })
 
-async function handlePreviewSql() {
-  if (!form.sourceDsId || !form.sourceSql) { ElMessage.warning("请先选择源数据源并填写 SQL"); return }
-  previewLoading.value = true
-  previewData.value = []
-  previewColumns.value = []
-  try {
-    const data = await datasourceApi.previewSql(form.sourceDsId, form.sourceSql)
-    if (data.length > 0) {
-      previewColumns.value = Object.keys(data[0])
-      previewData.value = data
-    } else {
-      ElMessage.info("SQL 执行成功，无返回数据")
-    }
-  } catch { previewData.value = []; previewColumns.value = [] }
-  finally { previewLoading.value = false }
-}
 
-async function handleGetSqlColumns() {
-  if (!form.sourceDsId || !form.sourceSql) { ElMessage.warning("请先选择源数据源并填写 SQL"); return }
-  columnsLoading.value = true
-  try {
-    const cols = await datasourceApi.getSqlColumns(form.sourceDsId, form.sourceSql)
-    sourceColumns.value = cols
-    ElMessage.success("获取到 " + cols.length + " 个列")
-  } catch { sourceColumns.value = [] }
-  finally { columnsLoading.value = false }
-}
 
 async function handleSave() {
   saving.value = true
