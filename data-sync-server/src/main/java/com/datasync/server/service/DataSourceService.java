@@ -95,7 +95,8 @@ public class DataSourceService {
         DataSourceEntity e = findById(dsId);
         String url = buildUrl(e);
         List<Map<String, Object>> rows = new ArrayList<>();
-        String previewSql = "SELECT * FROM (" + sql + ") _sql_wrapper LIMIT " + limit;
+        String cleanSql = sql.trim().replaceAll(";$", "");
+        String previewSql = "SELECT * FROM (" + cleanSql + ") _sql_wrapper LIMIT " + limit;
         try (Connection conn = DriverManager.getConnection(url, e.getUsername(), e.getPassword());
              java.sql.Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(previewSql)) {
@@ -119,7 +120,8 @@ public class DataSourceService {
         DataSourceEntity e = findById(dsId);
         String url = buildUrl(e);
         List<Map<String, Object>> cols = new ArrayList<>();
-        String metaSql = "SELECT * FROM (" + sql + ") _sql_wrapper LIMIT 0";
+        String cleanSql = sql.trim().replaceAll(";$", "");
+        String metaSql = "SELECT * FROM (" + cleanSql + ") _sql_wrapper LIMIT 0";
         try (Connection conn = DriverManager.getConnection(url, e.getUsername(), e.getPassword());
              java.sql.Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(metaSql)) {
