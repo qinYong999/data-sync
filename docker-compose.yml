@@ -1,39 +1,96 @@
-version: "3.8"
+# ============================================================================
+# DataSync 单机部署编排（MySQL 元数据库 + 后端应用）
+#
+# 快速开始：
+#   cp .env.example .env        # 然后修改里面的口令与密钥
+#   docker compose up -d
+#   访问 http://localhost:8080
+#
+# 【重要】应用以 prod profile 启动，配置缺失会**直接启动失败**，这是刻意设计：
+#   生产环境不允许静默使用默认口令。第一次部署前请确认 .env 里这两项已填：
+#     DATASYNC_ADMIN_PASSWORD  登录口令
+#     DATASYNC_SECRET_KEY      数据源口令的 AES-GCM 加密密钥（≥32 字符，一旦启用不要随意更换，
+#                              换了以后已存密文无法解密）
+#
+# 【注意】本机没有 Docker，本文件**未经本机实测**（详见 04-acceptance-report.md 未验证项）。
+# ============================================================================
 
 services:
   mysql:
     image: mysql:8.0
     container_name: datasync-mysql
-    restart: always
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      # 元数据写入需要与源库/目标库的时区一致，避免执行记录时间偏移
+      - --default-time-zone=+08:00
+      - --max_connections=300
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: datasync
-      MYSQL_CHARACTER_SET_SERVER: utf8mb4
-      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
-    ports:
-      - "3307:3306"
+      MYSQL_ROOT_PASSWORD: ${DATASYNC_DB_PASSWORD:?请在 .env 中设置 DATASYNC_DB_PASSWORD}
+      MYSQL_DATABASE: ${DATASYNC_DB_NAME:-datasync}
+      TZ: Asia/Shanghai
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 40s
+    # 默认不对外暴露元数据库端口；需要外部工具连库时再打开注释
+    # ports:
+    #   - "3307:3306"
 
   backend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datasync:1.0.0
     container_name: datasync-backend
-    restart: always
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/datasync?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: 123456
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_BATCH_JDBC_INITIALIZE_SCHEMA: always
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
+    ports:
+      - "${DATASYNC_HTTP_PORT:-8080}:8080"
+    environment:
+      # ---- 运行 profile：prod 会强制校验下面几项必填配置 ----
+      SPRING_PROFILES_ACTIVE: prod
+
+      # ---- 元数据库 ----
+      DATASYNC_DB_HOST: mysql
+      DATASYNC_DB_PORT: "3306"
+      DATASYNC_DB_NAME: ${DATASYNC_DB_NAME:-datasync}
+      DATASYNC_DB_USER: root
+      DATASYNC_DB_PASSWORD: ${DATASYNC_DB_PASSWORD:?请在 .env 中设置 DATASYNC_DB_PASSWORD}
+      DATASYNC_DB_POOL_SIZE: "20"
+
+      # ---- 登录与加密 ----
+      DATASYNC_AUTH_ENABLED: "true"
+      DATASYNC_ADMIN_USER: ${DATASYNC_ADMIN_USER:-admin}
+      DATASYNC_ADMIN_PASSWORD: ${DATASYNC_ADMIN_PASSWORD:?请在 .env 中设置 DATASYNC_ADMIN_PASSWORD}
+      DATASYNC_SECRET_KEY: ${DATASYNC_SECRET_KEY:?请在 .env 中设置 DATASYNC_SECRET_KEY（至少 32 字符）}
+
+      # ---- 同步引擎 ----
+      DATASYNC_WORKER_THREADS: ${DATASYNC_WORKER_THREADS:-4}
+      DATASYNC_QUERY_TIMEOUT: ${DATASYNC_QUERY_TIMEOUT:-300}
+      DATASYNC_SHUTDOWN_TIMEOUT: ${DATASYNC_SHUTDOWN_TIMEOUT:-60}
+      DATASYNC_LOG_FILE: /app/logs/data-sync.log
+
+      TZ: Asia/Shanghai
+    volumes:
+      # 应用日志落盘，便于审计与排障（容器重建不丢日志）
+      - app-logs:/app/logs
+    # 同步大表时目标库连接会长时间占用，给足停机时间让运行中任务收尾
+    stop_grace_period: 90s
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
 
 volumes:
   mysql-data:
+  app-logs:
