@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DataSync 登录</title>
+    <style>
+        :root { color-scheme: light dark; }
+        body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; margin: 0; min-height: 100vh;
+               display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #1f2937; }
+        .card { width: 340px; padding: 32px; background: #fff; border-radius: 12px;
+                box-shadow: 0 8px 30px rgba(0,0,0,.08); }
+        h1 { font-size: 20px; margin: 0 0 4px; }
+        p.sub { margin: 0 0 24px; font-size: 13px; color: #6b7280; }
+        label { display: block; font-size: 13px; margin: 14px 0 6px; color: #374151; }
+        input { width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 14px;
+                border: 1px solid #d1d5db; border-radius: 8px; }
+        button { width: 100%; margin-top: 22px; padding: 11px; font-size: 15px; color: #fff;
+                 background: #2563eb; border: 0; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        .msg { margin-top: 16px; padding: 10px 12px; border-radius: 8px; font-size: 13px; }
+        .err { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .ok { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>DataSync 控制台</h1>
+    <p class="sub">异构数据库数据同步平台</p>
+
+    <div class="msg err" th:if="${param.error != null}">用户名或密码错误，请重试。</div>
+    <div class="msg ok" th:if="${param.logout != null}">已安全退出登录。</div>
+
+    <!-- th:action 会自动注入 CSRF 隐藏域（服务端渲染路径） -->
+    <form th:action="@{/login}" method="post">
+        <label for="username">用户名</label>
+        <input type="text" id="username" name="username" autocomplete="username" autofocus required>
+        <label for="password">密码</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+        <button type="submit">登录</button>
+    </form>
+
+    <p class="sub" style="margin-top:20px">
+        前端 SPA 请改调 <code>POST /api/auth/login</code>（JSON + <code>X-CSRF-TOKEN</code> 头）；
+        token 由 <code>GET /api/auth/csrf</code> 下发。
+    </p>
+</div>
+</body>
+</html>
