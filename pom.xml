@@ -7,20 +7,33 @@
     <artifactId>data-sync</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <name>DataSync</name>
+    <description>异构数据库数据同步平台（MySQL → MySQL / 达梦 DM8）</description>
+
     <modules>
         <module>data-sync-core</module>
         <module>data-sync-server</module>
     </modules>
+
     <properties>
+        <!--
+          运行/编译基线：本机只装了 JDK 25，统一用 maven.compiler.release 指定为 21 生成 Java 21 字节码。
+          用 release 而不是 source/target 可以避免"引用了更高版本 JDK 才有的系统 API"这类隐患，
+          同时保证产物能在 Java 21 运行时的生产环境部署。
+        -->
         <java.version>21</java.version>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <spring-boot.version>3.4.1</spring-boot.version>
-        <spring-batch.version>5.1.2</spring-batch.version>
+
+        <spring-boot.version>4.1.1</spring-boot.version>
+
+        <!-- 测试依赖版本（未纳入 spring-boot-dependencies 管理的部分） -->
+        <mockito.version>5.23.0</mockito.version>
+        <byte-buddy.version>1.18.11</byte-buddy.version>
+        <assertj.version>3.27.7</assertj.version>
     </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -30,22 +43,82 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>com.datasync</groupId>
+                <artifactId>data-sync-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <dependencies>
+        <!-- 全模块通用测试依赖 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <!--
+          local-mirror 是"本地仓库当远程仓库"的兜底：绝大多数依赖已在本地仓库里，
+          命中它就不需要联网。未命中的会继续走下面两个真实仓库。
+          central-direct 通过 mirrorOf 排除规则绕开镜像，作为最后兜底。
+        -->
+        <repository>
+            <id>local-mirror</id>
+            <url>file://${user.home}/.m2/repository</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+            <id>central-direct</id>
+            <url>https://repo1.maven.org/maven2</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+    </repositories>
+
     <build>
-        <plugins>            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <parameters>true</parameters>
-                    <encoding>UTF-8</encoding>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring-boot.version}</version>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.15.0</version>
+                    <configuration>
+                        <release>${maven.compiler.release}</release>
+                        <encoding>UTF-8</encoding>
+                        <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.5.4</version>
+                    <configuration>
+                        <argLine>-Dfile.encoding=UTF-8</argLine>
+                        <!-- 单测偶发失败时保留现场，便于排查 -->
+                        <trimStackTrace>false</trimStackTrace>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 </project>

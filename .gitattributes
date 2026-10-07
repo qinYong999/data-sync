@@ -1,0 +1,40 @@
+# ============================================================================
+# 行尾统一
+#
+# 为什么需要这个文件：本机是 Windows，Git 默认 core.autocrlf 会把入库文本在检出时
+# 转成 CRLF。对 Flyway 迁移脚本、Java 源码这类"内容即契约"的文件，这种隐式转换
+# 只会带来无谓风险（例如将来对迁移文件做校验和比对时行尾不一致）。
+# 这里显式声明：源码与配置一律 LF 入库、LF 检出。
+# ============================================================================
+
+* text=auto
+
+# 源码与配置：一律 LF（跨平台、可校验、diff 稳定）
+*.java      text eol=lf
+*.sql       text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.xml       text eol=lf
+*.properties text eol=lf
+*.ts        text eol=lf
+*.vue       text eol=lf
+*.css       text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+Dockerfile  text eol=lf
+
+# Windows 专用脚本保留 CRLF，否则某些环境下无法直接执行
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
+*.ps1       text eol=crlf
+
+# 二进制：禁止任何转换
+*.jar       binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.woff      binary
+*.woff2     binary
+*.pdf       binary

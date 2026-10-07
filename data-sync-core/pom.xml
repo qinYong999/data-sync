@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -10,12 +10,23 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>data-sync-core</artifactId>
 
+    <description>
+        同步内核：自研流式引擎（键集分页 + 水位 + 幂等 upsert + 预检）。
+        自 D1 起不再依赖 Spring Batch；运行期只用到 JDK + slf4j 的 API。
+        注意：编译基线（release/编码）由根 POM 的 pluginManagement 统管，本模块不重复声明。
+    </description>
+
     <dependencies>
+        <!-- 日志门面：core 内部所有日志都走 slf4j，不绑定具体实现 -->
         <dependency>
-            <groupId>org.springframework.batch</groupId>
-            <artifactId>spring-batch-core</artifactId>
-            <version>${spring-batch.version}</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
+
+        <!--
+          下面两个依赖 core 自身不再使用（引擎已改为纯 JDBC），
+          保留是为了不给调用方制造"传递依赖突然消失"的编译意外；如需精简由 Lead 决定。
+        -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
@@ -24,24 +35,28 @@
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
         </dependency>
+
+        <!-- MySQL 驱动：生产主线 MySQL → MySQL；runtime 作用域保证服务端开箱可连 -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
+
+        <!-- 单测：内存库跑纯 JDBC 逻辑（junit-jupiter / assertj / mockito 由根 POM 统一声明） -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          测试期日志实现：没有它，slf4j 会丢弃全部日志，出问题时连异常堆栈都看不到
+          （引擎的"分段耗时汇总"与失败堆栈都靠它）。仅 test 作用域，不影响生产依赖面。
+        -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -23,18 +23,30 @@ mvnw.cmd
 # Logs
 *.log
 
-# Data
-data/
-
 # Local settings
 settings.xml
+
+# 本地环境变量（含口令与加密密钥，绝不入库）
+.env
+.env.local
 
 # Node
 data-sync-web/node_modules/
 data-sync-web/dist/
+
+# 构建产物：前端构建结果被拷进后端静态资源目录后**不入库**。
+# 「同一个 JAR 提供页面与 /api」是由 Dockerfile 在构建时把 dist 拷进来实现的；
+# 本地想手工验证单源托管，就自己执行一次 data-sync-web 的 npm run build 再拷贝。
+data-sync-server/src/main/resources/static/
 
 # Claude
 .claude/
 
 # Temp
 *.ps1
+
+# 生产化改造期间的本地临时工作区（不入库）
+.dsh-scratch/
+*.bak
+*.orig
+
