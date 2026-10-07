@@ -1,29 +1,159 @@
 server:
   port: 8080
+  # 优雅停机：收到 SIGTERM 后先停止接新请求，再等运行中的同步任务收尾（超时后强制退出）
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 100
+    connection-timeout: 20s
 
 spring:
+  application:
+    name: data-sync
+
+  # ============================================================
+  # 元数据库（任务配置、执行记录、错误行、Quartz 调度）——永远指向 MySQL 8.0
+  # 生产环境必须用环境变量覆盖。H2 只在 test 作用域出现，不作为运行时可选项。
+  # ============================================================
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/datasync?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    url: jdbc:mysql://${DATASYNC_DB_HOST:127.0.0.1}:${DATASYNC_DB_PORT:3306}/${DATASYNC_DB_NAME:datasync}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8&rewriteBatchedStatements=true&useUnicode=true
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: '123456'
+    username: ${DATASYNC_DB_USER:root}
+    password: ${DATASYNC_DB_PASSWORD:123456}
+    hikari:
+      pool-name: DataSyncMetaPool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      # 连接存活探测：防止元数据库重启后应用拿到死连接
+      keepalive-time: 60000
+      validation-timeout: 5000
+
+  # ============================================================
+  # JPA：Schema 的唯一事实源是 Flyway 迁移脚本，Hibernate 只做校验，不允许改表
+  # （原来 ddl-auto=update 在生产是明确的红牌：实体一改就悄悄改生产表结构）
+  # ============================================================
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+    open-in-view: false
     show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-  batch:
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # 旧库（历史上由 ddl-auto=update 建表、没有 flyway_schema_history）会被基线化为版本 1，
+    # 于是 V1（全新库的完整建表）被跳过，V2 负责把旧结构补齐到同一最终形态。
+    # 全新库则顺序执行 V1/V2/V3，V2 的条件判断会全部跳过。
+    baseline-on-migrate: true
+    baseline-version: 1
+    validate-on-migrate: true
+    # 生产禁止自动清库：任何情况下都不允许 clean
+    clean-disabled: true
+    table: flyway_schema_history
+
+  # ============================================================
+  # Quartz：JDBC JobStore（表由 Flyway V3 建立），保证重启后调度状态不漂移
+  #
+  # ⚠️ 这里**不要**再写 org.quartz.jobStore.class / jobStore.dataSource / dataSource.*：
+  #    Boot 4 的 JdbcStoreTypeConfiguration 只会调用 SchedulerFactoryBean.setDataSource(metaDataSource)，
+  #    而 org.quartz.impl.jdbcjobstore.JobStoreTX 只认自己的 `jobStore.dataSource` 属性，
+  #    于是初始化时必然抛 "DataSource name not set" 导致应用起不来（已实测）。
+  #    把 job-store-type 交给 Boot 后，它会自行装配正确的 LocalDataSourceJobStore。
+  # ============================================================
+  quartz:
+    job-store-type: jdbc
     jdbc:
-      initialize-schema: always
-    job:
+      # 建表由 Flyway V3 负责，禁止 Boot 内置脚本与 Flyway 争抢同一批表
+      initialize-schema: never
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: DataSyncScheduler
+            instanceId: AUTO
+          jobStore:
+            tablePrefix: QRTZ_
+            isClustered: false
+            misfireThreshold: 60000
+          threadPool:
+            class: org.quartz.simpl.SimpleThreadPool
+            threadCount: 5
+            threadPriority: 5
+
+  lifecycle:
+    # 比 server.shutdown 的等待窗口更长，保证运行中的同步任务有时间收尾并落 CANCELLED
+    timeout-per-shutdown-phase: 90s
+
+  threads:
+    virtual:
       enabled: false
+
+# ============================================================
+# 应用自身配置（契约 §4.4 冻结）
+# ============================================================
+app:
+  security:
+    enabled: ${DATASYNC_AUTH_ENABLED:true}
+    username: ${DATASYNC_ADMIN_USER:admin}
+    password: ${DATASYNC_ADMIN_PASSWORD:}
+    # AES-GCM 密钥，至少 32 字符。为空时应用拒绝启动（除非 security.enabled=false）
+    secret-key: ${DATASYNC_SECRET_KEY:}
+  sync:
+    worker-threads: ${DATASYNC_WORKER_THREADS:4}
+    max-concurrent-per-task: 1
+    default-page-size: 1000
+    default-batch-size: 500
+    default-safety-lag-seconds: 0
+    default-lookback-seconds: 0
+    query-timeout-seconds: 300
+    shutdown-timeout-seconds: 60
+  pool:
+    max-size-per-datasource: 8
+    min-idle-per-datasource: 1
+    idle-timeout-seconds: 600
+    max-lifetime-seconds: 1800
+    connection-timeout-seconds: 30
+  retention:
+    enabled: true
+    record-days: 30
+    error-days: 7
+    cleanup-cron: "0 30 3 * * ?"
+
+# ============================================================
+# 可观测性
+# ============================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    db:
+      enabled: true
 
 logging:
   charset:
-    console: GBK
+    # 控制台一律 UTF-8：原来写 GBK，在 Linux/Docker 里中文日志全部乱码
+    console: UTF-8
     file: UTF-8
   level:
+    root: INFO
     com.datasync: INFO
-    org.springframework.batch: INFO
+    org.springframework.jdbc.core: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"

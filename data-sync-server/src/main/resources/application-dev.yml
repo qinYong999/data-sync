@@ -1,0 +1,28 @@
+# ============================================================
+# 本地开发 profile
+#   激活方式：--spring.profiles.active=dev
+#   与 prod 的差别仅在于「省事」：默认口令、关闭认证、详细健康检查。
+#   注意：dev 也**必须**连 MySQL 元数据库（不再支持 H2 运行时），
+#   因为 Quartz JDBC JobStore 与 Flyway 迁移都是 MySQL 方言。
+# ============================================================
+spring:
+  jpa:
+    show-sql: false
+
+app:
+  security:
+    # 本地开发免登录，方便直接调接口。生产 profile 会强制覆盖为 true。
+    enabled: false
+    # dev 给一个固定密钥，保证本地加密/解密可复现；生产必须用环境变量覆盖
+    secret-key: dev-only-secret-key-please-change-in-production-0123456789
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.datasync: DEBUG
+    org.springframework.jdbc.core.JdbcTemplate: DEBUG

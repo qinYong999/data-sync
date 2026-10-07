@@ -1,0 +1,61 @@
+# ============================================================
+# 生产环境 profile
+#   激活方式：SPRING_PROFILES_ACTIVE=prod
+#
+# 设计原则：**配置缺失就启动失败**，绝不静默使用默认口令。
+#
+# 下面用 Spring 的 `${VAR:?TOKEN}` 语法做强制校验：环境变量为空时占位符无法解析，
+# 应用直接启动失败。注意 TOKEN 必须是**纯 ASCII** —— 曾经在这里写过中文提示，
+# 结果中文被拼进 JDBC URL，运维看到的是
+#   "Malformed database URL, failed to parse the connection string near '鐢熶骇鐜...'"
+# 完全看不懂缺什么。用 ASCII 令牌后，报错里会明确出现变量名本身。
+#
+# 各变量的含义见 .env.example。
+# ============================================================
+spring:
+  datasource:
+    # 元数据库：生产必须显式给出，不允许落到 127.0.0.1 的默认值
+    url: jdbc:mysql://${DATASYNC_DB_HOST:?MISSING_ENV_DATASYNC_DB_HOST}:${DATASYNC_DB_PORT:3306}/${DATASYNC_DB_NAME:?MISSING_ENV_DATASYNC_DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8&rewriteBatchedStatements=true&useUnicode=true
+    username: ${DATASYNC_DB_USER:?MISSING_ENV_DATASYNC_DB_USER}
+    password: ${DATASYNC_DB_PASSWORD:?MISSING_ENV_DATASYNC_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DATASYNC_DB_POOL_SIZE:20}
+      minimum-idle: 5
+  jpa:
+    show-sql: false
+
+# 生产必须开启认证，并且必须显式提供口令与加密密钥
+app:
+  security:
+    enabled: true
+    username: ${DATASYNC_ADMIN_USER:admin}
+    password: ${DATASYNC_ADMIN_PASSWORD:?MISSING_ENV_DATASYNC_ADMIN_PASSWORD}
+    # 用于 AES-GCM 加密数据源口令，至少 32 字符。更换密钥会导致已存密文无法解密，
+    # 因此务必纳入备份/密钥管理，不要随意轮换。
+    secret-key: ${DATASYNC_SECRET_KEY:?MISSING_ENV_DATASYNC_SECRET_KEY}
+  sync:
+    # 生产默认收紧：查询超时 5 分钟，停机等待 60 秒
+    query-timeout-seconds: ${DATASYNC_QUERY_TIMEOUT:300}
+    shutdown-timeout-seconds: ${DATASYNC_SHUTDOWN_TIMEOUT:60}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: WARN
+    com.datasync: INFO
+  # 生产把同步执行日志单独落到文件，便于审计与排障
+  file:
+    name: ${DATASYNC_LOG_FILE:logs/data-sync.log}
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 30
+      total-size-cap: 2GB
