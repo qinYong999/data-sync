@@ -1,5 +1,8 @@
 <template>
-  <div class="app-shell">
+  <!-- 登录页等"裸页面"不套壳 -->
+  <router-view v-if="isBlank" />
+
+  <div v-else class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">
@@ -32,8 +35,19 @@
 
       <div class="sidebar-footer">
         <div class="sidebar-status">
-          <span class="status-indicator"></span>
-          <span class="status-label">系统运行中</span>
+          <span class="status-indicator" :class="{ warn: runningTasks > 0 }"></span>
+          <span class="status-label">
+            {{ runningTasks > 0 ? runningTasks + " 个任务运行中" : "系统空闲" }}
+          </span>
+        </div>
+        <div v-if="systemInfo" class="sidebar-meta">
+          <span class="mono">{{ systemInfo.version || "—" }}</span>
+          <span class="meta-sep">·</span>
+          <span>{{ systemInfo.dbType || "—" }}</span>
+        </div>
+        <div v-if="systemInfo && systemInfo.dm8Verified === false" class="sidebar-warn">
+          <el-icon><WarningFilled /></el-icon>
+          <span>DM8 未在真实实例验证</span>
         </div>
       </div>
     </aside>
@@ -41,7 +55,24 @@
     <div class="main-area">
       <header class="topbar">
         <h1 class="topbar-title">{{ pageTitle }}</h1>
-        <div class="topbar-time mono">{{ currentTime }}</div>
+        <div class="topbar-right">
+          <div class="topbar-time mono">{{ currentTime }}</div>
+          <el-divider direction="vertical" />
+          <el-dropdown trigger="click" @command="onUserCommand">
+            <span class="user-chip">
+              <el-icon><UserFilled /></el-icon>
+              <span class="user-name">{{ displayName }}</span>
+              <el-icon class="chev"><ArrowDown /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="logout">
+                  <el-icon><SwitchButton /></el-icon>退出登录
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </header>
       <main class="content-area">
         <router-view />
@@ -51,11 +82,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue"
-import { useRoute } from "vue-router"
-import { Monitor, Connection, List } from "@element-plus/icons-vue"
+import { computed, ref, onMounted, onUnmounted, watch } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import { ElMessage, ElMessageBox } from "element-plus"
+import {
+  Monitor, Connection, List, UserFilled, ArrowDown, SwitchButton, WarningFilled,
+} from "@element-plus/icons-vue"
+import { useAuth } from "@/composables/useAuth"
+import { systemApi } from "@/api/system"
+import type { SystemInfoVO } from "@/types"
 
 const route = useRoute()
+const router = useRouter()
+const auth = useAuth()
+
+/** 登录页走裸布局 */
+const isBlank = computed(() => route.meta.blank === true)
 
 const pageTitle = computed(() => {
   const path = route.path
@@ -72,15 +114,65 @@ const pageTitle = computed(() => {
   return staticMap[path] || "数据同步管理平台"
 })
 
+const displayName = computed(() => auth.state.username || "未登录")
+const runningTasks = computed(() => Number(systemInfo.value?.runningTasks ?? 0))
+
 const currentTime = ref("")
+const systemInfo = ref<SystemInfoVO | null>(null)
 let timer: ReturnType<typeof setInterval> | null = null
+let infoTimer: ReturnType<typeof setInterval> | null = null
 
 function updateTime() {
   currentTime.value = new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
 }
 
-onMounted(() => { updateTime(); timer = setInterval(updateTime, 1000) })
-onUnmounted(() => { if (timer) clearInterval(timer) })
+async function loadSystemInfo() {
+  try {
+    systemInfo.value = await systemApi.info(true)
+  } catch {
+    // 静默：系统信息拿不到不影响主流程
+  }
+}
+
+async function onUserCommand(command: string) {
+  if (command !== "logout") return
+  try {
+    await ElMessageBox.confirm("确定退出登录？退出后需要重新输入账号密码。", "退出登录", {
+      type: "warning",
+      confirmButtonText: "退出登录",
+      cancelButtonText: "取消",
+    })
+  } catch {
+    return
+  }
+  try {
+    await auth.logout()
+    ElMessage.success("已退出登录")
+  } catch {
+    ElMessage.warning("退出登录请求失败，已清理本地会话")
+  }
+  await router.replace({ path: "/login" })
+}
+
+onMounted(() => {
+  updateTime()
+  timer = setInterval(updateTime, 1000)
+  loadSystemInfo()
+  infoTimer = setInterval(loadSystemInfo, 30000)
+})
+
+/** 进入业务页时刷新一次系统信息（登录后 runningTasks 才有意义） */
+watch(
+  () => route.fullPath,
+  () => {
+    if (!isBlank.value) loadSystemInfo()
+  },
+)
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+  if (infoTimer) clearInterval(infoTimer)
+})
 </script>
 
 <style scoped>
@@ -114,9 +206,13 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
   width: 3px; height: 16px; background: var(--accent); border-radius: 0 3px 3px 0;
 }
 
-.sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border-subtle); }
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 6px; }
 .sidebar-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
 .status-indicator { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-emerald); }
+.status-indicator.warn { background: var(--accent-amber); }
+.sidebar-meta { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+.meta-sep { opacity: 0.4; }
+.sidebar-warn { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--accent-amber); }
 
 /* Main Area */
 .main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -129,7 +225,19 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
   border-bottom: 1px solid var(--border-subtle);
 }
 .topbar-title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
 .topbar-time { font-size: 13px; color: var(--text-muted); letter-spacing: 0.04em; }
+
+.user-chip {
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer; font-size: 13px; color: var(--text-secondary);
+  padding: 4px 8px; border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+  outline: none;
+}
+.user-chip:hover { background: var(--bg-secondary); }
+.user-name { font-weight: 500; color: var(--text-primary); }
+.chev { font-size: 12px; opacity: 0.5; }
 
 .content-area { flex: 1; padding: 20px 28px; overflow-y: auto; }
 </style>

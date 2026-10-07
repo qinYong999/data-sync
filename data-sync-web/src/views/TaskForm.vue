@@ -157,11 +157,44 @@
             <el-form-item label="批量写入行数">
               <el-input-number v-model="form.batchSize" :min="100" :max="5000" :step="100" />
             </el-form-item>
+            <el-form-item v-if="form.syncMode !== 'INCR'" label="全量同步策略">
+              <el-select v-model="form.fullSyncStrategy">
+                <el-option
+                  v-for="(label, value) in FULL_SYNC_STRATEGY_MAP"
+                  :key="value"
+                  :label="label"
+                  :value="value"
+                />
+              </el-select>
+              <div class="field-hint">
+                TRUNCATE 与现状一致、最可预期；SWAP 使用暂存表 + RENAME，同步期间目标表仍可读。
+                增量/幂等模式下不会清空目标表。
+              </div>
+            </el-form-item>
           </div>
 
           <div class="form-actions">
             <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
             <el-button @click="$router.back()">取消</el-button>
+            <el-button
+              v-if="isEdit"
+              type="primary"
+              :plain="true"
+              :loading="preflightLoading"
+              @click="handlePreflight"
+            >
+              <el-icon><MagicStick /></el-icon>预检
+            </el-button>
+            <span v-else class="save-first-hint">保存后可对任务执行预检</span>
+          </div>
+
+          <div v-if="isEdit" class="preflight-box">
+            <div class="preflight-box-title">预检结果</div>
+            <PreflightPanel
+              :result="preflightResult"
+              :loading="preflightLoading"
+              empty-text='点击上方"预检"按钮检查源表/目标表、字段映射与增量字段配置。'
+            />
           </div>
         </el-form>
       </div>
@@ -188,8 +221,12 @@ import { useRoute, useRouter } from "vue-router"
 import { taskApi } from "@/api/task"
 import { datasourceApi } from "@/api/datasource"
 import { ElMessage } from "element-plus"
+import { MagicStick } from "@element-plus/icons-vue"
 import PageHeader from "@/components/PageHeader.vue"
+import PreflightPanel from "@/components/PreflightPanel.vue"
 import FieldMappingEditor from "@/views/FieldMappingEditor.vue"
+import { FULL_SYNC_STRATEGY_MAP } from "@/types"
+import type { PreflightRes } from "@/types"
 import type { TaskForm as TaskFormType } from "@/types"
 
 const route = useRoute()
@@ -198,6 +235,9 @@ const isEdit = computed(() => !!route.params.id)
 const formRef = ref<any>(null)
 const saving = ref(false)
 const mappingKey = ref(0)
+
+const preflightLoading = ref(false)
+const preflightResult = ref<PreflightRes | null>(null)
 
 const rules = {
   name: [{ required: true, message: "请输入任务名称", trigger: "blur" }],
@@ -211,6 +251,7 @@ const rules = {
 const form = reactive<TaskFormType>({
   name: "", sourceDsId: null, targetDsId: null, sourceTable: "", targetTable: "",
   syncMode: "FULL_INCR", incrColumn: "", incrValue: "", cronExpression: "", sourceMode: "TABLE", sourceSql: "", pageSize: 1000, batchSize: 500,
+  fullSyncStrategy: "TRUNCATE",
 })
 
 const sourceTables = ref<string[]>([])
@@ -299,7 +340,13 @@ onMounted(async () => {
       form.targetTable = task.targetTable || ""
       form.syncMode = task.syncMode || "FULL_INCR"
       form.incrColumn = task.incrColumn || ""
-      form.incrValue = task.incrValue || ""
+      // 契约 §4.2：新逻辑读写 cursor_value，incr_value 仅作兼容；两者取到哪个用哪个
+      form.incrValue = task.cursorValue ?? task.incrValue ?? ""
+      form.orderColumn = task.orderColumn || ""
+      form.safetyLagSeconds = task.safetyLagSeconds ?? 0
+      form.lookbackSeconds = task.lookbackSeconds ?? 0
+      form.fullSyncStrategy = task.fullSyncStrategy || "TRUNCATE"
+      form.errorPolicyJson = task.errorPolicyJson || ""
       form.cronExpression = task.cronExpression || ""
       form.pageSize = task.pageSize ?? 1000
       form.batchSize = task.batchSize ?? 500
@@ -326,12 +373,35 @@ watch([() => form.sourceDsId, () => form.sourceTable], async ([dsId, table]) => 
 
 
 
+async function handlePreflight() {
+  const id = Number(route.params.id)
+  if (!id) return
+  preflightLoading.value = true
+  try {
+    preflightResult.value = await taskApi.preflight(id)
+  } catch {
+    preflightResult.value = null
+  } finally {
+    preflightLoading.value = false
+  }
+}
+
 async function handleSave() {
   saving.value = true
   try {
-    const payload = { ...form, fieldMappings: fieldMappings.value }
-    if (isEdit.value) { await taskApi.update(Number(route.params.id), payload); ElMessage.success("保存成功") }
-    else { const c = await taskApi.create(payload); mappingTaskId.value = c.id; ElMessage.success("创建成功，可继续配置字段映射") }
+    const payload: any = { ...form, fieldMappings: fieldMappings.value }
+    // 同步写入 cursorValue，兼容"新逻辑读写 cursor_value、incr_value 仅保留"的契约
+    if (form.incrValue !== undefined) payload.cursorValue = form.incrValue
+    if (isEdit.value) {
+      await taskApi.update(Number(route.params.id), payload)
+      ElMessage.success("保存成功")
+      // 配置变了，旧的预检结论作废
+      preflightResult.value = null
+    } else {
+      const c = await taskApi.create(payload)
+      mappingTaskId.value = c.id
+      ElMessage.success("创建成功，可继续配置字段映射")
+    }
     router.push("/tasks")
   } catch {} finally { saving.value = false }
 }
@@ -380,4 +450,15 @@ async function handleSave() {
 .mapping-placeholder { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; color: var(--text-muted); text-align: center; gap: 10px; }
 .mapping-placeholder p { margin: 0; font-size: 14px; }
 .mapping-placeholder-icon { font-size: 32px; opacity: 0.2; }
+
+.field-hint { font-size: 12px; color: var(--text-muted); line-height: 1.6; margin-top: 4px; }
+.save-first-hint { font-size: 12px; color: var(--text-muted); align-self: center; margin-left: 4px; }
+.preflight-box {
+  margin-top: 18px; padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+.preflight-box-title {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;
+}
 </style>
